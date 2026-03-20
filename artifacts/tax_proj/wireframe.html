@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe: 세금 절세 도우미</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --w-bg: #f5f5f5;
+    --w-border: #ccc;
+    --w-text: #555;
+    --w-muted: #aaa;
+    --w-fill: #eee;
+  }
+
+  * {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--w-text);
+  }
+
+  body { background: var(--w-bg); }
+
+  nav { position: sticky; top: 0; z-index: 40; background: var(--w-bg); border-bottom: 1px solid var(--w-border); }
+  nav button { cursor: pointer; font-size: 13px; }
+  nav button:hover { background: var(--w-fill); border-radius: 4px; }
+  nav button.active { font-weight: bold; border-bottom: 2px solid var(--w-text); }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .vp-toggle button {
+    font-size: 12px; padding: 2px 8px;
+    border: 1px solid var(--w-border); cursor: pointer; background: white;
+  }
+  .vp-toggle button:first-child { border-radius: 4px 0 0 4px; }
+  .vp-toggle button:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+  .vp-toggle button.active { background: var(--w-text); color: white; }
+
+  body.viewport-mobile .screen-content {
+    max-width: 375px !important;
+    margin: 24px auto !important;
+    border: 2px solid var(--w-border);
+    border-radius: 24px;
+    min-height: 667px;
+    background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .screen-notes {
+    background: #fffde7;
+    border-left: 3px solid #ffd54f;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+  .screen-notes summary {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    color: #b0a050;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .screen-notes p { margin: 6px 0 2px; color: #777; }
+  .screen-notes ul { margin: 4px 0 0 16px; padding: 0; color: #777; }
+  .screen-notes li { margin: 2px 0; }
+</style>
+</head>
+<body class="p-0 m-0 viewport-desktop">
+
+<nav class="flex items-center gap-4 px-6 py-2">
+  <span class="text-xs" style="color:var(--w-muted)">wireframe</span>
+  <button id="nav-0" onclick="show(0)" class="px-2 py-1">기본 화면</button>
+  <button id="nav-1" onclick="show(1)" class="px-2 py-1">입력 폼</button>
+  <button id="nav-2" onclick="show(2)" class="px-2 py-1">분석 중</button>
+  <button id="nav-3" onclick="show(3)" class="px-2 py-1">조문 탭</button>
+  <button id="nav-4" onclick="show(4)" class="px-2 py-1">채팅 질문</button>
+  <button id="nav-5" onclick="show(5)" class="px-2 py-1">히스토리</button>
+  <div class="vp-toggle flex ml-auto">
+    <button id="vp-desktop" onclick="setViewport('desktop')" class="active">Desktop</button>
+    <button id="vp-mobile" onclick="setViewport('mobile')">Mobile</button>
+  </div>
+</nav>
+
+<!-- ===== SCREEN 0: 기본 화면 ===== -->
+<div id="screen-0" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      기본 화면 — 전체 레이아웃
+    </h2>
+
+    <!-- App Shell -->
+    <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border); background:white; min-height:640px;">
+
+      <!-- App Header -->
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+        <div class="flex items-center gap-2">
+          <i data-lucide="landmark" style="width:18px;height:18px;"></i>
+          <span class="text-sm font-bold">세금 절세 도우미</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs" style="color:var(--w-muted)">다크모드</span>
+          <!-- Toggle Off -->
+          <div class="border rounded-full" style="width:32px;height:16px;background:var(--w-fill);border-color:var(--w-border);position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:white;border:1px solid var(--w-border);position:absolute;top:1px;left:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Body: Sidebar + Main -->
+      <div class="flex @md:flex-row flex-col" style="min-height:588px;">
+
+        <!-- Sidebar: History -->
+        <div class="@md:w-56 w-full" style="border-right:1px solid var(--w-border); border-bottom:1px solid var(--w-border); flex-shrink:0;">
+          <div class="px-4 py-2 text-xs font-bold" style="border-bottom:1px solid var(--w-border); color:var(--w-muted); background:var(--w-fill);">
+            조회 히스토리
+          </div>
+          <!-- History items -->
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+            <p class="font-bold">근로소득</p>
+            <p style="color:var(--w-muted)">오늘 14:23</p>
+          </div>
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border);">
+            <p class="font-bold">사업소득</p>
+            <p style="color:var(--w-muted)">오늘 13:45</p>
+          </div>
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border);">
+            <p class="font-bold">근로소득</p>
+            <p style="color:var(--w-muted)">어제 10:12</p>
+          </div>
+        </div>
+
+        <!-- Main Area -->
+        <div class="flex-1 flex flex-col">
+
+          <!-- Input Form -->
+          <div class="p-5" style="border-bottom:1px solid var(--w-border);">
+            <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">개인 정보 입력</p>
+            <div class="grid @md:grid-cols-3 grid-cols-1 gap-3 mb-3">
+              <!-- 소득 유형 -->
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">소득 유형</label>
+                <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill)">
+                  <span>근로소득</span>
+                  <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+                </div>
+              </div>
+              <!-- 연간 소득 -->
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">연간 소득</label>
+                <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill)" value="5,000만원" disabled>
+              </div>
+              <!-- 부양가족 수 -->
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">부양가족 수</label>
+                <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill)" value="2명" disabled>
+              </div>
+              <!-- 주택 보유 -->
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">주택 보유</label>
+                <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill)">
+                  <span>1주택</span>
+                  <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+                </div>
+              </div>
+              <!-- 금융소득 -->
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">금융소득</label>
+                <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill)">
+                  <span>없음</span>
+                  <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+                </div>
+              </div>
+              <!-- 연금/퇴직 -->
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">연금/퇴직소득</label>
+                <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill)">
+                  <span>없음</span>
+                  <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+                </div>
+              </div>
+              <!-- 기납부세액 -->
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">기납부세액</label>
+                <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill)" value="300만원" disabled>
+              </div>
+            </div>
+            <!-- 자유 텍스트 -->
+            <div class="mb-3">
+              <label class="text-xs" style="color:var(--w-muted)">추가 의뢰 (선택)</label>
+              <textarea class="w-full border rounded px-3 py-2 text-sm mt-1" rows="2" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted); resize:none;" placeholder="예: 주택청약 공제도 포함해서 분석해주세요" disabled></textarea>
+            </div>
+            <div class="flex justify-end">
+              <button class="border rounded px-4 py-1.5 text-sm font-bold" style="border-color:var(--w-text); background:var(--w-fill)" disabled>분석 요청</button>
+            </div>
+          </div>
+
+          <!-- Report Area -->
+          <div class="p-5 flex-1" style="border-bottom:1px solid var(--w-border);">
+            <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">절세 방안 보고서</p>
+            <!-- Tabs -->
+            <div class="mb-4">
+              <div class="flex gap-0" style="border-bottom:1px solid var(--w-border);">
+                <button class="px-4 py-2 text-sm font-bold" style="border-bottom:2px solid var(--w-text);" disabled>해석 보기</button>
+                <button class="px-4 py-2 text-sm" style="color:var(--w-muted);" disabled>조문 보기</button>
+              </div>
+              <div class="pt-4 space-y-3">
+                <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                  <p class="text-sm font-bold mb-1">1. 근로소득공제 최대 활용</p>
+                  <p class="text-xs" style="color:var(--w-muted)">연간 5,000만원 근로소득에 대해 소득세법 제47조에 따른 근로소득공제를 적용하면 약 1,200만원 공제가 가능합니다.</p>
+                </div>
+                <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                  <p class="text-sm font-bold mb-1">2. 부양가족 인적공제 (2명)</p>
+                  <p class="text-xs" style="color:var(--w-muted)">소득세법 제50조에 따라 부양가족 2명에 대해 1인당 150만원, 총 300만원의 기본공제를 받을 수 있습니다.</p>
+                </div>
+                <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                  <p class="text-sm font-bold mb-1">3. 주택청약종합저축 소득공제</p>
+                  <p class="text-xs" style="color:var(--w-muted)">1주택 보유자로서 조세특례제한법 제87조에 따라 연 240만원 한도 내 납입액의 40%까지 소득공제가 가능합니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Area -->
+          <div class="p-5">
+            <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">추가 질문</p>
+            <div class="mb-3 space-y-2">
+              <div class="flex justify-end">
+                <div class="border rounded-lg px-3 py-2 text-xs" style="border-color:var(--w-border); background:var(--w-fill); max-width:280px;">
+                  연금저축 공제도 추가해서 다시 분석해줘
+                </div>
+              </div>
+              <div class="flex justify-start">
+                <div class="border rounded-lg px-3 py-2 text-xs" style="border-color:var(--w-border); background:white; max-width:280px; color:var(--w-muted);">
+                  보고서가 업데이트되었습니다
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <input class="flex-1 border rounded px-3 py-1.5 text-sm" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)" placeholder="추가 질문을 입력하세요..." disabled>
+              <button class="border rounded px-3 py-1.5 text-sm" style="border-color:var(--w-border); background:var(--w-fill)" disabled>
+                <i data-lucide="send" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-notes mt-4">
+      <details open>
+        <summary>Notes</summary>
+        <p>전체 앱 레이아웃. 대표 데이터가 채워진 기본 상태.</p>
+        <ul>
+          <li>레이아웃: 좌측 히스토리 사이드바(w-56) + 우측 메인(폼 → 보고서 → 채팅) 수직 스택</li>
+          <li>모바일: 사이드바가 상단 콜랩스 또는 하단 시트로 전환 (→ 화면 2에서 처리)</li>
+          <li>보고서 기본 탭: [해석 보기] 활성</li>
+          <li>히스토리 항목에 hover 시 클릭 가능 표시 (→ 화면 6에서 처리)</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SCREEN 1: 입력 폼 (빈 상태) ===== -->
+<div id="screen-1" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      입력 폼 — 빈 상태
+    </h2>
+
+    <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border); background:white;">
+
+      <!-- App Header -->
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+        <div class="flex items-center gap-2">
+          <i data-lucide="landmark" style="width:18px;height:18px;"></i>
+          <span class="text-sm font-bold">세금 절세 도우미</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs" style="color:var(--w-muted)">다크모드</span>
+          <div class="border rounded-full" style="width:32px;height:16px;background:var(--w-fill);border-color:var(--w-border);position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:white;border:1px solid var(--w-border);position:absolute;top:1px;left:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex @md:flex-row flex-col" style="min-height:500px;">
+
+        <!-- Sidebar (empty history) -->
+        <div class="@md:w-56 w-full" style="border-right:1px solid var(--w-border);">
+          <div class="px-4 py-2 text-xs font-bold" style="border-bottom:1px solid var(--w-border); color:var(--w-muted); background:var(--w-fill);">
+            조회 히스토리
+          </div>
+          <div class="flex flex-col items-center justify-center p-6 gap-2" style="color:var(--w-muted);">
+            <i data-lucide="clock" style="width:24px;height:24px;"></i>
+            <p class="text-xs text-center">분석 기록이<br>없습니다</p>
+          </div>
+        </div>
+
+        <!-- Main: Form Only -->
+        <div class="flex-1 p-5">
+          <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">개인 정보 입력</p>
+          <div class="grid @md:grid-cols-3 grid-cols-1 gap-3 mb-3">
+            <div>
+              <label class="text-xs" style="color:var(--w-muted)">소득 유형</label>
+              <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)">
+                <span>선택하세요</span>
+                <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+              </div>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--w-muted)">연간 소득</label>
+              <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)" placeholder="예: 5000만원" disabled>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--w-muted)">부양가족 수</label>
+              <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)" placeholder="예: 2" disabled>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--w-muted)">주택 보유</label>
+              <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)">
+                <span>선택하세요</span>
+                <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+              </div>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--w-muted)">금융소득</label>
+              <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)">
+                <span>선택하세요</span>
+                <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+              </div>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--w-muted)">연금/퇴직소득</label>
+              <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)">
+                <span>선택하세요</span>
+                <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+              </div>
+            </div>
+            <div>
+              <label class="text-xs" style="color:var(--w-muted)">기납부세액</label>
+              <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)" placeholder="예: 300만원" disabled>
+            </div>
+          </div>
+
+          <!-- 자유 텍스트 -->
+          <div class="mb-4">
+            <label class="text-xs" style="color:var(--w-muted)">추가 의뢰 (선택)</label>
+            <textarea class="w-full border rounded px-3 py-2 text-sm mt-1" rows="3" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted); resize:none;" placeholder="폼을 채우지 않아도 여기에 직접 입력하여 분석 요청이 가능합니다.&#10;예: 프리랜서 소득으로 절세 방법 알려줘" disabled></textarea>
+          </div>
+
+          <!-- 분석 요청 버튼 (자유텍스트 있으므로 활성) -->
+          <div class="flex justify-end">
+            <button class="border rounded px-4 py-1.5 text-sm font-bold" style="border-color:var(--w-text); background:var(--w-fill)" disabled>분석 요청</button>
+          </div>
+
+          <!-- 안내 문구 -->
+          <div class="mt-4 border rounded-lg px-4 py-3 flex items-start gap-2 text-sm" style="border-color:var(--w-border); background:var(--w-fill);">
+            <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0; margin-top:1px;"></i>
+            <p class="text-xs" style="color:var(--w-muted)">폼을 입력하거나 추가 의뢰란에 내용을 입력하면 분석 요청이 가능합니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-notes mt-4">
+      <details open>
+        <summary>Notes — TAX-001, TAX-002, TAX-008</summary>
+        <p>초기 진입 또는 새 분석 시작 상태. 폼 미입력.</p>
+        <ul>
+          <li>TAX-001: 7개 폼 필드 모두 표시 확인</li>
+          <li>TAX-002: 자유 텍스트 textarea가 폼 하단에 표시</li>
+          <li>TAX-008: 폼 미입력 상태에서도 자유 텍스트만 있으면 '분석 요청' 버튼 활성화</li>
+          <li>제약: 폼도 비어있고 자유 텍스트도 없으면 '분석 요청' 버튼 비활성 (구현 시 처리)</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SCREEN 2: 분석 중 로딩 ===== -->
+<div id="screen-2" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      분석 중 — 로딩 인디케이터
+    </h2>
+
+    <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border); background:white;">
+
+      <!-- App Header -->
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+        <div class="flex items-center gap-2">
+          <i data-lucide="landmark" style="width:18px;height:18px;"></i>
+          <span class="text-sm font-bold">세금 절세 도우미</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs" style="color:var(--w-muted)">다크모드</span>
+          <div class="border rounded-full" style="width:32px;height:16px;background:var(--w-fill);border-color:var(--w-border);position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:white;border:1px solid var(--w-border);position:absolute;top:1px;left:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex @md:flex-row flex-col" style="min-height:500px;">
+
+        <!-- Sidebar -->
+        <div class="@md:w-56 w-full" style="border-right:1px solid var(--w-border);">
+          <div class="px-4 py-2 text-xs font-bold" style="border-bottom:1px solid var(--w-border); color:var(--w-muted); background:var(--w-fill);">
+            조회 히스토리
+          </div>
+          <div class="flex flex-col items-center justify-center p-6 gap-2" style="color:var(--w-muted);">
+            <i data-lucide="clock" style="width:24px;height:24px;"></i>
+            <p class="text-xs text-center">분석 기록이<br>없습니다</p>
+          </div>
+        </div>
+
+        <!-- Main: Form (locked) + Loading Report -->
+        <div class="flex-1 flex flex-col">
+
+          <!-- Form (비활성 상태) -->
+          <div class="p-5" style="border-bottom:1px solid var(--w-border); opacity:0.5;">
+            <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">개인 정보 입력</p>
+            <div class="grid @md:grid-cols-3 grid-cols-1 gap-3 mb-3">
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">소득 유형</label>
+                <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill)">
+                  <span>근로소득</span>
+                  <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">연간 소득</label>
+                <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill)" value="5,000만원" disabled>
+              </div>
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">부양가족 수</label>
+                <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill)" value="2명" disabled>
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <!-- 비활성 버튼 (로딩 중) -->
+              <button class="border rounded px-4 py-1.5 text-sm font-bold flex items-center gap-2" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)" disabled>
+                <i data-lucide="loader" style="width:14px;height:14px;"></i>
+                분석 중...
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading Report -->
+          <div class="p-5 flex-1">
+            <div class="flex items-center gap-2 mb-4">
+              <i data-lucide="loader" style="width:16px;height:16px;color:var(--w-muted);"></i>
+              <span class="text-sm" style="color:var(--w-muted)">법령 검색 및 AI 분석 중...</span>
+            </div>
+            <!-- Skeleton -->
+            <div class="border rounded-lg p-4 space-y-3 mb-3" style="border-color:var(--w-border);">
+              <div class="rounded" style="height:12px; width:40%; background:var(--w-fill);"></div>
+              <div class="rounded" style="height:12px; width:75%; background:var(--w-fill);"></div>
+              <div class="rounded" style="height:12px; width:55%; background:var(--w-fill);"></div>
+            </div>
+            <div class="border rounded-lg p-4 space-y-3 mb-3" style="border-color:var(--w-border);">
+              <div class="rounded" style="height:12px; width:35%; background:var(--w-fill);"></div>
+              <div class="rounded" style="height:12px; width:80%; background:var(--w-fill);"></div>
+              <div class="rounded" style="height:12px; width:60%; background:var(--w-fill);"></div>
+            </div>
+            <div class="border rounded-lg p-4 space-y-3" style="border-color:var(--w-border);">
+              <div class="rounded" style="height:12px; width:45%; background:var(--w-fill);"></div>
+              <div class="rounded" style="height:12px; width:70%; background:var(--w-fill);"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-notes mt-4">
+      <details open>
+        <summary>Notes — TAX-007, TAX-009</summary>
+        <p>'분석 요청' 또는 채팅 전송 직후 보고서 생성 중인 상태.</p>
+        <ul>
+          <li>TAX-007: 폼 영역 반투명(opacity 0.5) + '분석 요청' 버튼이 '분석 중...' 스피너로 대체</li>
+          <li>TAX-009: 채팅 전송 후 동일한 Skeleton 로딩 패턴 표시</li>
+          <li>Skeleton 3개 카드로 보고서 영역 플레이스홀더 표시</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SCREEN 3: 보고서 조문 탭 ===== -->
+<div id="screen-3" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      보고서 — 조문 보기 탭 활성
+    </h2>
+
+    <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border); background:white;">
+
+      <!-- App Header -->
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+        <div class="flex items-center gap-2">
+          <i data-lucide="landmark" style="width:18px;height:18px;"></i>
+          <span class="text-sm font-bold">세금 절세 도우미</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs" style="color:var(--w-muted)">다크모드</span>
+          <div class="border rounded-full" style="width:32px;height:16px;background:var(--w-fill);border-color:var(--w-border);position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:white;border:1px solid var(--w-border);position:absolute;top:1px;left:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex @md:flex-row flex-col" style="min-height:500px;">
+
+        <!-- Sidebar -->
+        <div class="@md:w-56 w-full" style="border-right:1px solid var(--w-border);">
+          <div class="px-4 py-2 text-xs font-bold" style="border-bottom:1px solid var(--w-border); color:var(--w-muted); background:var(--w-fill);">
+            조회 히스토리
+          </div>
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+            <p class="font-bold">근로소득</p>
+            <p style="color:var(--w-muted)">오늘 14:23</p>
+          </div>
+        </div>
+
+        <!-- Main -->
+        <div class="flex-1 flex flex-col">
+
+          <!-- Form (collapsed/summary) -->
+          <div class="px-5 py-3 flex items-center justify-between" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+            <div class="flex items-center gap-3 text-xs" style="color:var(--w-muted);">
+              <span>근로소득</span>
+              <span style="border-left:1px solid var(--w-border); padding-left:8px;">5,000만원</span>
+              <span style="border-left:1px solid var(--w-border); padding-left:8px;">부양가족 2명</span>
+              <span style="border-left:1px solid var(--w-border); padding-left:8px;">1주택</span>
+            </div>
+            <button class="text-xs" style="color:var(--w-muted)" disabled>수정 ▾</button>
+          </div>
+
+          <!-- Report with 조문 Tab Active -->
+          <div class="p-5 flex-1" style="border-bottom:1px solid var(--w-border);">
+            <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">절세 방안 보고서</p>
+            <div class="mb-4">
+              <div class="flex gap-0" style="border-bottom:1px solid var(--w-border);">
+                <button class="px-4 py-2 text-sm" style="color:var(--w-muted);" disabled>해석 보기</button>
+                <button class="px-4 py-2 text-sm font-bold" style="border-bottom:2px solid var(--w-text);" disabled>조문 보기</button>
+              </div>
+              <!-- 조문 내용 -->
+              <div class="pt-4 space-y-4">
+                <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border);">
+                  <div class="px-4 py-2 text-xs font-bold" style="background:var(--w-fill); border-bottom:1px solid var(--w-border);">
+                    소득세법 제47조 (근로소득공제)
+                  </div>
+                  <div class="px-4 py-3 text-xs" style="color:var(--w-muted); line-height:1.6;">
+                    ① 근로소득이 있는 거주자에 대해서는 해당 과세기간에 받는 총급여액에서 다음 각 호의 금액을 공제한다. 다만, 공제액이 2천만원을 초과하는 경우에는 2천만원을 공제한다.
+                    <br><br>
+                    1. 총급여액이 500만원 이하인 경우: 총급여액의 100분의 70
+                  </div>
+                </div>
+                <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border);">
+                  <div class="px-4 py-2 text-xs font-bold" style="background:var(--w-fill); border-bottom:1px solid var(--w-border);">
+                    소득세법 제50조 (기본공제)
+                  </div>
+                  <div class="px-4 py-3 text-xs" style="color:var(--w-muted); line-height:1.6;">
+                    ① 종합소득이 있는 거주자에 대해서는 다음 각 호의 어느 하나에 해당하는 사람의 수에 1명당 연 150만원을 곱하여 계산한 금액을 그 거주자의 해당 과세기간의 종합소득금액에서 공제한다.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Area -->
+          <div class="p-5">
+            <div class="flex gap-2">
+              <input class="flex-1 border rounded px-3 py-1.5 text-sm" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)" placeholder="추가 질문을 입력하세요..." disabled>
+              <button class="border rounded px-3 py-1.5 text-sm" style="border-color:var(--w-border); background:var(--w-fill)" disabled>
+                <i data-lucide="send" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-notes mt-4">
+      <details open>
+        <summary>Notes — TAX-003</summary>
+        <p>보고서의 [조문 보기] 탭이 활성화된 상태.</p>
+        <ul>
+          <li>기본 탭은 [해석 보기]. 이 화면은 [조문 보기] 클릭 후 상태</li>
+          <li>조문은 '법령명 + 조문 번호'를 헤더로, 원문을 본문으로 표시</li>
+          <li>폼 영역을 요약 바(Summary Bar)로 접어 보고서에 공간 확보</li>
+          <li>탭 전환은 보고서 내용만 변경, 채팅 영역은 유지</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SCREEN 4: 채팅 추가 질문 ===== -->
+<div id="screen-4" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      채팅 추가 질문 → 보고서 재생성
+    </h2>
+
+    <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border); background:white;">
+
+      <!-- App Header -->
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+        <div class="flex items-center gap-2">
+          <i data-lucide="landmark" style="width:18px;height:18px;"></i>
+          <span class="text-sm font-bold">세금 절세 도우미</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs" style="color:var(--w-muted)">다크모드</span>
+          <div class="border rounded-full" style="width:32px;height:16px;background:var(--w-fill);border-color:var(--w-border);position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:white;border:1px solid var(--w-border);position:absolute;top:1px;left:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex @md:flex-row flex-col" style="min-height:560px;">
+
+        <!-- Sidebar -->
+        <div class="@md:w-56 w-full" style="border-right:1px solid var(--w-border);">
+          <div class="px-4 py-2 text-xs font-bold" style="border-bottom:1px solid var(--w-border); color:var(--w-muted); background:var(--w-fill);">
+            조회 히스토리
+          </div>
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+            <p class="font-bold">근로소득</p>
+            <p style="color:var(--w-muted)">오늘 14:23</p>
+          </div>
+        </div>
+
+        <!-- Main -->
+        <div class="flex-1 flex flex-col">
+
+          <!-- Form Summary Bar -->
+          <div class="px-5 py-3 flex items-center justify-between" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+            <div class="flex items-center gap-3 text-xs" style="color:var(--w-muted);">
+              <span>근로소득</span>
+              <span style="border-left:1px solid var(--w-border); padding-left:8px;">5,000만원</span>
+              <span style="border-left:1px solid var(--w-border); padding-left:8px;">부양가족 2명</span>
+            </div>
+            <button class="text-xs" style="color:var(--w-muted)" disabled>수정 ▾</button>
+          </div>
+
+          <!-- Report (재생성된 보고서) -->
+          <div class="p-5" style="border-bottom:1px solid var(--w-border);">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold" style="color:var(--w-muted);">절세 방안 보고서</p>
+              <span class="border rounded-full px-2 text-xs" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted);">업데이트됨</span>
+            </div>
+            <div class="flex gap-0 mb-3" style="border-bottom:1px solid var(--w-border);">
+              <button class="px-4 py-2 text-sm font-bold" style="border-bottom:2px solid var(--w-text);" disabled>해석 보기</button>
+              <button class="px-4 py-2 text-sm" style="color:var(--w-muted);" disabled>조문 보기</button>
+            </div>
+            <div class="space-y-3">
+              <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                <p class="text-sm font-bold mb-1">1. 근로소득공제 최대 활용</p>
+                <p class="text-xs" style="color:var(--w-muted);">소득세법 제47조에 따른 근로소득공제 약 1,200만원 적용 가능.</p>
+              </div>
+              <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                <p class="text-sm font-bold mb-1">2. 연금저축 세액공제 (추가 반영)</p>
+                <p class="text-xs" style="color:var(--w-muted);">조세특례제한법 제86조의4에 따라 연금저축 납입액 400만원 한도로 16.5% 세액공제 가능 → 최대 66만원 절세.</p>
+              </div>
+              <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                <p class="text-sm font-bold mb-1">3. 부양가족 인적공제 (2명)</p>
+                <p class="text-xs" style="color:var(--w-muted);">1인당 150만원, 총 300만원 기본공제.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat -->
+          <div class="p-5 flex-1">
+            <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">추가 질문</p>
+            <div class="space-y-2 mb-3">
+              <div class="flex justify-end">
+                <div class="border rounded-lg px-3 py-2 text-xs" style="border-color:var(--w-border); background:var(--w-fill); max-width:300px;">
+                  연금저축 공제도 추가해서 다시 분석해줘
+                </div>
+              </div>
+              <div class="flex justify-start">
+                <div class="border rounded-lg px-3 py-2 text-xs flex items-center gap-2" style="border-color:var(--w-border); background:white; max-width:300px; color:var(--w-muted);">
+                  <i data-lucide="check" style="width:12px;height:12px;"></i>
+                  보고서가 업데이트되었습니다
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <input class="flex-1 border rounded px-3 py-1.5 text-sm" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted)" placeholder="추가 질문을 입력하세요..." disabled>
+              <button class="border rounded px-3 py-1.5 text-sm" style="border-color:var(--w-border); background:var(--w-fill)" disabled>
+                <i data-lucide="send" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-notes mt-4">
+      <details open>
+        <summary>Notes — TAX-004</summary>
+        <p>채팅으로 추가 질문 후 보고서가 재생성된 상태.</p>
+        <ul>
+          <li>보고서 헤더에 '업데이트됨' 뱃지 표시</li>
+          <li>채팅 내역: 사용자 메시지(우측 정렬) + 시스템 안내(좌측 정렬, "보고서가 업데이트되었습니다")</li>
+          <li>재생성된 보고서는 이전 보고서를 완전히 대체 (스크롤 없이 동일 위치)</li>
+          <li>폼 영역은 Summary Bar로 접힌 상태 유지</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== SCREEN 5: 히스토리 목록 ===== -->
+<div id="screen-5" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      히스토리 — 항목 선택 및 복원
+    </h2>
+
+    <div class="border rounded-lg overflow-hidden" style="border-color:var(--w-border); background:white;">
+
+      <!-- App Header -->
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--w-border); background:var(--w-fill);">
+        <div class="flex items-center gap-2">
+          <i data-lucide="landmark" style="width:18px;height:18px;"></i>
+          <span class="text-sm font-bold">세금 절세 도우미</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs" style="color:var(--w-muted)">다크모드</span>
+          <div class="border rounded-full" style="width:32px;height:16px;background:var(--w-fill);border-color:var(--w-border);position:relative;">
+            <div style="width:12px;height:12px;border-radius:50%;background:white;border:1px solid var(--w-border);position:absolute;top:1px;left:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex @md:flex-row flex-col" style="min-height:520px;">
+
+        <!-- Sidebar: History with selected item -->
+        <div class="@md:w-56 w-full" style="border-right:1px solid var(--w-border);">
+          <div class="px-4 py-2 text-xs font-bold" style="border-bottom:1px solid var(--w-border); color:var(--w-muted); background:var(--w-fill);">
+            조회 히스토리
+          </div>
+
+          <!-- 선택된 항목 (강조) -->
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border); border-left:3px solid var(--w-text); background:var(--w-fill);">
+            <p class="font-bold">사업소득</p>
+            <p style="color:var(--w-muted)">오늘 13:45</p>
+          </div>
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border);">
+            <p class="font-bold">근로소득</p>
+            <p style="color:var(--w-muted)">오늘 14:23</p>
+          </div>
+          <div class="px-3 py-2.5 text-xs" style="border-bottom:1px solid var(--w-border);">
+            <p class="font-bold">근로소득</p>
+            <p style="color:var(--w-muted)">어제 10:12</p>
+          </div>
+        </div>
+
+        <!-- Main: Restored Form + Report -->
+        <div class="flex-1 flex flex-col">
+
+          <!-- Restored Form Summary + Expand -->
+          <div class="p-5" style="border-bottom:1px solid var(--w-border);">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold" style="color:var(--w-muted);">개인 정보 입력</p>
+              <span class="border rounded-full px-2 text-xs flex items-center gap-1" style="border-color:var(--w-border); background:var(--w-fill); color:var(--w-muted);">
+                <i data-lucide="history" style="width:10px;height:10px;"></i>
+                복원됨
+              </span>
+            </div>
+            <div class="grid @md:grid-cols-3 grid-cols-1 gap-3 mb-3">
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">소득 유형</label>
+                <div class="border rounded px-3 py-1.5 text-sm flex items-center justify-between mt-1" style="border-color:var(--w-border); background:var(--w-fill)">
+                  <span>사업소득</span>
+                  <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">연간 소득</label>
+                <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill)" value="1억원" disabled>
+              </div>
+              <div>
+                <label class="text-xs" style="color:var(--w-muted)">부양가족 수</label>
+                <input class="w-full border rounded px-3 py-1.5 text-sm mt-1" style="border-color:var(--w-border); background:var(--w-fill)" value="0명" disabled>
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button class="border rounded px-4 py-1.5 text-sm font-bold" style="border-color:var(--w-text); background:var(--w-fill)" disabled>재분석</button>
+            </div>
+          </div>
+
+          <!-- Restored Report -->
+          <div class="p-5 flex-1">
+            <p class="text-xs font-bold mb-3" style="color:var(--w-muted);">절세 방안 보고서</p>
+            <div class="flex gap-0 mb-3" style="border-bottom:1px solid var(--w-border);">
+              <button class="px-4 py-2 text-sm font-bold" style="border-bottom:2px solid var(--w-text);" disabled>해석 보기</button>
+              <button class="px-4 py-2 text-sm" style="color:var(--w-muted);" disabled>조문 보기</button>
+            </div>
+            <div class="space-y-3">
+              <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                <p class="text-sm font-bold mb-1">1. 사업소득 필요경비 공제</p>
+                <p class="text-xs" style="color:var(--w-muted);">소득세법 제27조에 따라 사업과 관련된 필요경비를 인정받아 과세표준을 낮출 수 있습니다.</p>
+              </div>
+              <div class="border rounded-lg p-4" style="border-color:var(--w-border);">
+                <p class="text-sm font-bold mb-1">2. 노란우산공제 소득공제</p>
+                <p class="text-xs" style="color:var(--w-muted);">중소기업협동조합법에 따라 최대 500만원 소득공제 가능합니다.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-notes mt-4">
+      <details open>
+        <summary>Notes — TAX-005, TAX-010</summary>
+        <p>히스토리 항목 클릭 시 해당 시점의 폼과 보고서가 복원된 상태.</p>
+        <ul>
+          <li>TAX-010: 보고서 생성 직후 히스토리에 자동 추가 — 사이드바에 항목이 즉시 표시됨</li>
+          <li>TAX-005: 히스토리 항목 클릭 → 폼 값 + 보고서 복원. '복원됨' 뱃지 표시</li>
+          <li>선택된 히스토리 항목에 좌측 강조 border(3px solid) + 배경 fill 표시</li>
+          <li>'재분석' 버튼으로 복원된 폼 데이터 기반 새 분석 가능</li>
+          <li>localStorage에 저장되므로 새로고침 후에도 유지</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var currentScreen = 0;
+var screenIds = [];
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('nav-' + id).classList.add('active');
+  currentScreen = screenIds.indexOf(id);
+}
+
+function setViewport(mode) {
+  document.body.classList.remove('viewport-mobile', 'viewport-desktop');
+  document.body.classList.add('viewport-' + mode);
+  document.querySelectorAll('.vp-toggle button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('vp-' + mode).classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(b) {
+    screenIds.push(parseInt(b.id.replace('nav-', '')));
+  });
+  var first = document.querySelector('nav button[id^="nav-"]');
+  if (first) first.click();
+  if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' && currentScreen < screenIds.length - 1) {
+    show(screenIds[currentScreen + 1]);
+  } else if (e.key === 'ArrowLeft' && currentScreen > 0) {
+    show(screenIds[currentScreen - 1]);
+  }
+});
+</script>
+<script>
+(function() {
+  var root = document.createElement('div');
+  root.id = 'wf-feedback-root';
+  document.body.appendChild(root);
+  var shadow = root.attachShadow({ mode: 'open' });
+
+  shadow.innerHTML = '<style>' +
+    ':host { all: initial; }' +
+    '.wf-toggle { position: fixed; bottom: 20px; right: 20px; z-index: 99999; ' +
+      'width: 44px; height: 44px; border-radius: 12px; border: 1px solid hsl(214.3 31.8% 91.4%); ' +
+      'background: hsl(0 0% 100%); cursor: pointer; display: flex; align-items: center; ' +
+      'justify-content: center; font-family: sans-serif; color: hsl(215.4 16.3% 46.9%); ' +
+      'box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06); ' +
+      'transition: all 0.15s ease; }' +
+    '.wf-toggle:hover { background: hsl(210 40% 96.1%); color: hsl(222.2 47.4% 11.2%); }' +
+    '.wf-toggle.active { background: hsl(222.2 47.4% 11.2%); color: hsl(210 40% 98%); ' +
+      'border-color: hsl(222.2 47.4% 11.2%); }' +
+    '.wf-highlight { position: absolute; background: rgba(59,130,246,0.15); ' +
+      'border: 2px solid rgba(59,130,246,0.5); pointer-events: none; z-index: 99990; ' +
+      'border-radius: 2px; transition: all 0.1s; }' +
+    '.wf-toast { position: fixed; bottom: 72px; right: 20px; z-index: 99999; ' +
+      'background: hsl(222.2 47.4% 11.2%); color: #fff; font-family: sans-serif; ' +
+      'font-size: 13px; padding: 8px 16px; border-radius: 8px; ' +
+      'box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; ' +
+      'transition: opacity 0.2s ease; pointer-events: none; max-width: 320px; ' +
+      'word-break: break-all; }' +
+    '.wf-toast.visible { opacity: 1; }' +
+  '</style>' +
+  '<div class="wf-toggle" id="wf-toggle-btn" title="Feedback mode">' +
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/>' +
+    '</svg>' +
+  '</div>' +
+  '<div class="wf-highlight" id="wf-highlight" style="display:none"></div>' +
+  '<div class="wf-toast" id="wf-toast"></div>';
+
+  var toggleBtn = shadow.getElementById('wf-toggle-btn');
+  var highlightEl = shadow.getElementById('wf-highlight');
+  var toastEl = shadow.getElementById('wf-toast');
+  var feedbackMode = false;
+  var toastTimer;
+
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(function() { toastEl.classList.remove('visible'); }, 2000);
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { showToast('Copied: ' + text); }, function() { showToast('Copy failed'); });
+    } else { showToast('Copy failed'); }
+  }
+
+  toggleBtn.addEventListener('click', function() {
+    feedbackMode = !feedbackMode;
+    toggleBtn.classList.toggle('active', feedbackMode);
+    if (!feedbackMode) highlightEl.style.display = 'none';
+  });
+
+  function buildSelector(el) {
+    var parts = [];
+    var cur = el;
+    while (cur && cur !== document.body && cur !== document.documentElement) {
+      if (cur.id) { parts.unshift('#' + cur.id); break; }
+      var tag = cur.tagName;
+      var parent = cur.parentElement;
+      if (parent) {
+        var siblings = Array.from(parent.children);
+        var idx = siblings.indexOf(cur) + 1;
+        parts.unshift(tag + ':nth-child(' + idx + ')');
+      } else { parts.unshift(tag); }
+      cur = parent;
+    }
+    return parts.join(' > ');
+  }
+
+  function getScreenId() {
+    var active = document.querySelector('.screen.active');
+    return active ? active.id.replace('screen-', '') : 'unknown';
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    if (!feedbackMode) return;
+    var target = e.target;
+    if (!target || target.closest('#wf-feedback-root') || target.closest('nav')) { highlightEl.style.display = 'none'; return; }
+    var screen = target.closest('.screen.active');
+    if (!screen) { highlightEl.style.display = 'none'; return; }
+    var rect = target.getBoundingClientRect();
+    highlightEl.style.display = 'block';
+    highlightEl.style.top = (rect.top + window.scrollY) + 'px';
+    highlightEl.style.left = (rect.left + window.scrollX) + 'px';
+    highlightEl.style.width = rect.width + 'px';
+    highlightEl.style.height = rect.height + 'px';
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!feedbackMode) return;
+    var target = e.target;
+    if (!target || target.closest('#wf-feedback-root')) return;
+    if (target.closest('nav')) return;
+    var screen = target.closest('.screen.active');
+    if (!screen) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var selector = buildSelector(target);
+    var path = '[screen-' + getScreenId() + ' > ' + selector + ']';
+    copyToClipboard(path);
+  }, true);
+})();
+</script>
+</body>
+</html>

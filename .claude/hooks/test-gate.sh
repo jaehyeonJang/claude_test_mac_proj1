@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# hook은 non-interactive shell로 실행되므로 bun PATH를 명시적으로 추가
+export PATH="$HOME/.bun/bin:$PATH"
+
 # 무한 루프 방지: 재시도 카운터
 COUNTER_FILE="/tmp/claude-test-gate-retry"
 COUNT=$(cat "$COUNTER_FILE" 2>/dev/null || echo 0)

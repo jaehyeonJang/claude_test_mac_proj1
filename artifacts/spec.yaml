@@ -1,0 +1,199 @@
+version: 1
+
+scenarios:
+  - id: "TAX-001"
+    name: "구조화된 폼으로 절세 분석 요청"
+    given: "7개 항목 입력 폼(소득 유형, 연간 소득, 부양가족 수, 주택 보유, 금융소득, 연금/퇴직소득, 기납부세액)이 표시된 화면"
+    when: "폼을 채우고 '분석 요청' 버튼을 클릭한다"
+    then: "보고서 영역에 절세 방안 내용과 [조문 보기] [해석 보기] 탭이 표시된다"
+    examples:
+      - input:
+          incomeType: "근로소득"
+          annualIncome: "5000만원"
+          dependents: 2
+          house: "1주택"
+          financialIncome: "없음"
+          pension: "없음"
+          prepaidTax: "300만원"
+        expect:
+          reportVisible: true
+          tabButtons: ["조문 보기", "해석 보기"]
+      - input:
+          incomeType: "사업소득"
+          annualIncome: "1억원"
+          dependents: 0
+          house: "무주택"
+          financialIncome: "500만원"
+          pension: "없음"
+          prepaidTax: "0원"
+        expect:
+          reportVisible: true
+          tabButtons: ["조문 보기", "해석 보기"]
+
+  - id: "TAX-002"
+    name: "자유 텍스트로 추가 의뢰 입력"
+    given: "폼이 채워진 상태에서 하단에 자유 텍스트 입력란이 표시된 화면"
+    when: "자유 텍스트 입력란에 내용을 입력하고 '분석 요청' 버튼을 클릭한다"
+    then: "자유 텍스트 내용이 반영된 보고서가 표시된다"
+    examples:
+      - input:
+          freeText: "주택청약 공제도 포함해서 분석해줘"
+        expect:
+          reportVisible: true
+          reportContains: "주택청약"
+      - input:
+          freeText: ""
+          incomeType: "근로소득"
+        expect:
+          reportVisible: true
+
+  - id: "TAX-003"
+    name: "보고서 조문/해석 탭 전환"
+    given: "보고서 화면에 [조문 보기] [해석 보기] 탭이 표시되고 기본 탭이 [해석 보기]인 상태"
+    when: "[조문 보기] 탭을 클릭한다"
+    then: "법령 조문 원문이 표시되고 [해석 보기] 탭 내용은 숨겨진다"
+    examples:
+      - input:
+          clickTab: "조문 보기"
+        expect:
+          activeTab: "조문 보기"
+          statuteTextVisible: true
+          interpretationVisible: false
+      - input:
+          clickTab: "해석 보기"
+        expect:
+          activeTab: "해석 보기"
+          statuteTextVisible: false
+          interpretationVisible: true
+
+  - id: "TAX-004"
+    name: "채팅으로 추가 질문 후 보고서 재생성"
+    given: "보고서가 표시된 화면 하단에 채팅 입력란이 있는 상태"
+    when: "채팅 입력란에 추가 질문을 입력하고 전송한다"
+    then: "이전 보고서가 새 보고서로 교체되고 채팅 영역에 메시지 내역이 표시된다"
+    examples:
+      - input:
+          chatMessage: "연금저축 공제도 추가해서 다시 분석해줘"
+        expect:
+          reportRegenerated: true
+          chatHistory: ["연금저축 공제도 추가해서 다시 분석해줘", "보고서가 업데이트되었습니다"]
+      - input:
+          chatMessage: "부양가족이 1명 더 있으면 얼마나 절세되나요?"
+        expect:
+          reportRegenerated: true
+          chatHistoryCount: 2
+
+  - id: "TAX-005"
+    name: "히스토리 저장 및 재조회"
+    given: "분석 요청 완료 후 보고서가 표시된 화면"
+    when: "히스토리 목록에서 이전 항목을 클릭한다"
+    then: "해당 시점의 폼 입력값과 보고서가 복원된다"
+    examples:
+      - input:
+          historyItem: 0
+        expect:
+          formRestored: true
+          reportVisible: true
+          historyItemCount: 1
+      - input:
+          refreshPage: true
+        expect:
+          historyItemCount: 1
+
+  - id: "TAX-006"
+    name: "다크모드 토글"
+    given: "화면 우상단에 다크모드 토글 버튼이 표시된 라이트모드 상태"
+    when: "다크모드 토글 버튼을 클릭한다"
+    then: "전체 화면이 다크 테마로 전환되고, 상태가 localStorage에 저장된다"
+    examples:
+      - input:
+          toggleDarkMode: true
+        expect:
+          theme: "dark"
+          darkModeStored: true
+      - input:
+          toggleDarkMode: false
+        expect:
+          theme: "light"
+          darkModeStored: true
+
+  - id: "TAX-007"
+    name: "분석 요청 중 로딩 인디케이터 표시"
+    given: "7개 항목 폼이 채워진 화면"
+    when: "'분석 요청' 버튼을 클릭한다"
+    then: "보고서가 표시되기 전 로딩 인디케이터가 화면에 나타난다"
+    examples:
+      - input:
+          incomeType: "근로소득"
+          annualIncome: "5000만원"
+          dependents: 1
+          house: "1주택"
+          financialIncome: "없음"
+          pension: "없음"
+          prepaidTax: "0원"
+          clickAnalyze: true
+        expect:
+          loadingIndicatorVisible: true
+          reportVisible: false
+
+  - id: "TAX-008"
+    name: "자유 텍스트만으로 분석 요청"
+    given: "폼 필드가 기본값(미입력) 상태에서 자유 텍스트 입력란이 표시된 화면"
+    when: "자유 텍스트 입력란에만 내용을 입력하고 '분석 요청' 버튼을 클릭한다"
+    then: "보고서가 표시된다"
+    examples:
+      - input:
+          freeText: "프리랜서 소득으로 절세 방법 알려줘"
+        expect:
+          reportVisible: true
+      - input:
+          freeText: "배당소득 2000만원 초과 시 건강보험료는?"
+        expect:
+          reportVisible: true
+
+  - id: "TAX-009"
+    name: "채팅 전송 후 보고서 재생성 중 로딩 인디케이터 표시"
+    given: "보고서가 표시된 화면 하단에 채팅 입력란이 있는 상태"
+    when: "채팅 입력란에 질문을 입력하고 전송한다"
+    then: "재생성 완료 전 로딩 인디케이터가 화면에 나타난다"
+    examples:
+      - input:
+          chatMessage: "부양가족이 2명이면 어떻게 달라지나요?"
+        expect:
+          loadingIndicatorVisible: true
+
+  - id: "TAX-010"
+    name: "분석 완료 후 히스토리 목록 자동 추가"
+    given: "폼을 채우고 '분석 요청'을 눌러 보고서가 표시된 직후 상태"
+    when: "히스토리 목록 영역을 확인한다"
+    then: "요청 시각과 소득 유형이 표시된 히스토리 항목이 목록에 추가된다"
+    examples:
+      - input:
+          incomeType: "근로소득"
+          annualIncome: "5000만원"
+          dependents: 0
+          house: "무주택"
+          financialIncome: "없음"
+          pension: "없음"
+          prepaidTax: "0원"
+        expect:
+          historyItemCount: 1
+          historyItemIncomeType: "근로소득"
+          historyItemTimestampVisible: true
+
+  - id: "TAX-011"
+    name: "다크모드 초기값 OS 설정 연동"
+    given: "localStorage에 다크모드 설정이 없는 상태에서 페이지에 최초 진입한다"
+    when: "화면이 로드된다"
+    then: "OS 다크모드 설정에 맞는 테마가 자동으로 적용된다"
+    examples:
+      - input:
+          osDarkMode: true
+          localStorageDarkMode: null
+        expect:
+          theme: "dark"
+      - input:
+          osDarkMode: false
+          localStorageDarkMode: null
+        expect:
+          theme: "light"

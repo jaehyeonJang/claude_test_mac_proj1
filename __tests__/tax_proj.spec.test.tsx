@@ -8,6 +8,7 @@ import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Page from "@/app/page";
+import { useTaxStore } from "@/lib/store/taxStore";
 
 // ---------------------------------------------------------------------------
 // Shared mock API response
@@ -27,19 +28,71 @@ function setupFetchMock(response = mockReport) {
   } as Response);
 }
 
+// In-memory localStorage polyfill for jsdom v28 (setItem/clear not always available)
+let _lsData: Record<string, string> = {};
+const _localStorageMock: Storage = {
+  getItem: (key) => _lsData[key] ?? null,
+  setItem: (key, val) => { _lsData[key] = String(val); },
+  removeItem: (key) => { delete _lsData[key]; },
+  clear: () => { _lsData = {}; },
+  get length() { return Object.keys(_lsData).length; },
+  key: (i) => Object.keys(_lsData)[i] ?? null,
+};
+
 beforeEach(() => {
-  // Reset localStorage
-  try {
-    window.localStorage.clear();
-  } catch {
-    // noop — some environments restrict localStorage.clear()
+  // Reset in-memory store and stub localStorage globally
+  _lsData = {};
+  vi.stubGlobal("localStorage", _localStorageMock);
+
+  // Radix UI requires these DOM APIs — polyfill for jsdom
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
   }
-  // Reset HTML class
+  if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => {};
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = () => {};
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+
+  // ScrollArea uses ResizeObserver — polyfill for jsdom
+  if (typeof ResizeObserver === "undefined") {
+    (globalThis as unknown as Record<string, unknown>).ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+
+  // Reset Zustand store state between tests (store is a module-level singleton)
+  useTaxStore.setState({
+    form: {
+      incomeType: "",
+      annualIncome: "",
+      dependents: "",
+      house: "",
+      financialIncome: "",
+      pension: "",
+      prepaidTax: "",
+      freeText: "",
+    },
+    report: null,
+    chatHistory: [],
+    history: [],
+    darkMode: false,
+    isLoading: false,
+  });
+
+  // Reset HTML dark class
   document.documentElement.className = "";
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 // ---------------------------------------------------------------------------
@@ -544,75 +597,49 @@ describe("[TAX-010] 분석 완료 후 히스토리 목록 자동 추가", () => 
 // ---------------------------------------------------------------------------
 describe("[TAX-011] 다크모드 초기값 OS 설정 연동", () => {
   it("localStorage 미설정 + OS 다크모드 ON → 초기 로드 시 다크 테마 적용", () => {
-    // OS 다크모드 모킹
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: vi.fn().mockImplementation((query) => ({
-        matches: query === "(prefers-color-scheme: dark)",
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
+    // beforeEach에서 _lsData = {}로 초기화됨 → localStorage.getItem("darkMode") = null
 
-    // 인라인 스크립트 시뮬레이션 (layout.tsx의 script 태그 내용 실행)
-    // 실제 앱에서는 layout.tsx의 인라인 <script>가 html에 dark 클래스를 추가한다.
-    // 테스트에서는 실제 layout.tsx를 렌더링하거나 스크립트 로직을 직접 검증한다.
-    const script = `
-      (function() {
-        try {
-          var stored = localStorage.getItem('darkMode');
-          if (stored !== null) {
-            if (JSON.parse(stored)) {
-              document.documentElement.classList.add('dark');
-            }
-          } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch(e) {}
-      })();
-    `;
-    eval(script);
+    // OS 다크모드 모킹 (vi.stubGlobal → afterEach에서 vi.unstubAllGlobals로 자동 복원)
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(prefers-color-scheme: dark)",
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    // layout.tsx 인라인 스크립트 로직 시뮬레이션
+    const stored = localStorage.getItem("darkMode"); // null (미설정)
+    if (stored !== null) {
+      if (JSON.parse(stored)) document.documentElement.classList.add("dark");
+    } else if (matchMedia("(prefers-color-scheme: dark)").matches) {
+      document.documentElement.classList.add("dark");
+    }
 
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 
   it("localStorage 미설정 + OS 라이트모드 → 초기 로드 시 라이트 테마 적용", () => {
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: vi.fn().mockImplementation((query) => ({
-        matches: false, // 라이트모드
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: false, // 라이트모드
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
 
-    localStorage.clear();
-
-    const script = `
-      (function() {
-        try {
-          var stored = localStorage.getItem('darkMode');
-          if (stored !== null) {
-            if (JSON.parse(stored)) {
-              document.documentElement.classList.add('dark');
-            }
-          } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch(e) {}
-      })();
-    `;
-    eval(script);
+    const stored = localStorage.getItem("darkMode"); // null
+    if (stored !== null) {
+      if (JSON.parse(stored)) document.documentElement.classList.add("dark");
+    } else if (matchMedia("(prefers-color-scheme: dark)").matches) {
+      document.documentElement.classList.add("dark");
+    }
 
     expect(document.documentElement.classList.contains("dark")).toBe(false);
   });
