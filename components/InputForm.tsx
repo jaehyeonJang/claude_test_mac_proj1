@@ -56,6 +56,7 @@ export function InputForm() {
       const data = await res.json();
       setReport(data);
       addHistory({ timestamp: Date.now(), form, report: data });
+      setForm({ incomeType: "", annualIncome: "", dependents: "", house: "", financialIncome: "", pension: "", prepaidTax: "", freeText: "" });
     } catch {
       // error — no-op
     } finally {

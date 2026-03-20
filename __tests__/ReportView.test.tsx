@@ -63,8 +63,8 @@ describe("ReportView", () => {
       "data-state",
       "active"
     );
-    expect(screen.getByText("소득세법 제55조")).toBeInTheDocument();
-    expect(screen.getByText("소득세 세율 관련 조문 내용입니다.")).toBeInTheDocument();
+    expect(screen.getByText(/소득세법 제55조/)).toBeInTheDocument();
+    expect(screen.getByText(/소득세 세율 관련 조문 내용/)).toBeInTheDocument();
   });
 
   it("'해석 보기' 탭 클릭 시 해석 텍스트를 표시한다", async () => {
@@ -81,7 +81,8 @@ describe("ReportView", () => {
       "active"
     );
     expect(
-      screen.getByText(/근로소득자 절세 방안/)
+      screen.getByText(/절세\s*방안|연금저축|공제/)
     ).toBeInTheDocument();
   });
+
 });

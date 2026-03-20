@@ -39,13 +39,17 @@ const mockHistoryItem: HistoryItem = {
 const mockRestoreHistory = vi.fn();
 
 vi.mock("@/lib/store/taxStore", () => ({
-  useTaxStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) => {
-    const state = {
-      history: [] as HistoryItem[],
-      restoreHistory: mockRestoreHistory,
-    };
-    return selector(state);
-  }),
+  useTaxStore: Object.assign(
+    vi.fn((selector: (state: Record<string, unknown>) => unknown) => {
+      const state = {
+        history: [] as HistoryItem[],
+        restoreHistory: mockRestoreHistory,
+      };
+      return selector(state);
+    }),
+    { setState: vi.fn() }
+  ),
+  loadHistory: vi.fn(() => []),
 }));
 
 import { useTaxStore } from "@/lib/store/taxStore";

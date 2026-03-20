@@ -1,6 +1,7 @@
 "use client";
 
-import { useTaxStore } from "@/lib/store/taxStore";
+import { useEffect } from "react";
+import { useTaxStore, loadHistory } from "@/lib/store/taxStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { HistoryItem } from "@/lib/store/taxStore";
 
@@ -23,6 +24,13 @@ function formatTimestamp(timestamp: number): string {
 export function HistorySidebar() {
   const history = useTaxStore((s) => s.history);
   const restoreHistory = useTaxStore((s) => s.restoreHistory);
+
+  useEffect(() => {
+    const loaded = loadHistory();
+    if (loaded.length > 0) {
+      useTaxStore.setState({ history: loaded });
+    }
+  }, []);
 
   const handleClick = (item: HistoryItem) => {
     restoreHistory(item);
