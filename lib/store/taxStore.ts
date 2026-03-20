@@ -93,16 +93,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   report: null,
   chatHistory: [],
   history: typeof window !== "undefined" ? loadHistory() : [],
-  darkMode: (() => {
-    if (typeof window === "undefined") return false;
-    try {
-      const stored = localStorage.getItem("darkMode");
-      if (stored !== null) return JSON.parse(stored) as boolean;
-      return typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches;
-    } catch {
-      return false;
-    }
-  })(),
+  darkMode: false,
   isLoading: false,
   error: null,
 
