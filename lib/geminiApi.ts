@@ -4,6 +4,10 @@ import type { Statute } from "./lawApi";
 
 const model = google("gemini-2.0-flash");
 
+function sanitizeInput(input: string): string {
+  return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, 2000);
+}
+
 export async function analyzeWithGemini(
   formData: Record<string, unknown>,
   statutes: Statute[],
@@ -15,8 +19,12 @@ export async function analyzeWithGemini(
       : "";
 
   const chatSection = chatMessage
-    ? `\n\n추가 질문: ${chatMessage}`
+    ? `\n\n<추가질문>\n${sanitizeInput(chatMessage)}\n</추가질문>`
     : "";
+
+  const freeTextValue = formData.freeText
+    ? `\n<추가의뢰>\n${sanitizeInput(String(formData.freeText))}\n</추가의뢰>`
+    : "없음";
 
   const prompt = `당신은 한국 세법 전문가입니다. 아래 정보를 바탕으로 절세 방안을 분석해주세요.
 
@@ -28,7 +36,7 @@ export async function analyzeWithGemini(
 - 금융소득: ${formData.financialIncome || "미입력"}
 - 연금/퇴직소득: ${formData.pension || "미입력"}
 - 기납부세액: ${formData.prepaidTax || "미입력"}
-- 자유 텍스트: ${formData.freeText || "없음"}${statuteSection}${chatSection}
+- 자유 텍스트: ${freeTextValue}${statuteSection}${chatSection}
 
 절세 방안을 구체적으로 분석하고, 적용 가능한 공제 항목과 예상 절감액을 제시해주세요.`;
 

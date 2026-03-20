@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import type { Statute } from "@/lib/lawApi";
 
 const STORAGE_KEY = "taxStore:v1";
 
@@ -15,10 +16,7 @@ export interface FormData {
   freeText: string;
 }
 
-export interface Statute {
-  name: string;
-  text: string;
-}
+export type { Statute };
 
 export interface ReportData {
   statutes: Statute[];
@@ -26,6 +24,7 @@ export interface ReportData {
 }
 
 export interface ChatMessage {
+  id: string;
   role: "user" | "assistant";
   content: string;
 }
@@ -44,14 +43,17 @@ export interface TaxStoreState {
   history: HistoryItem[];
   darkMode: boolean;
   isLoading: boolean;
+  error: string | null;
   setForm: (form: Partial<FormData>) => void;
   setReport: (report: ReportData | null) => void;
-  addChatMessage: (message: ChatMessage) => void;
+  addChatMessage: (message: Omit<ChatMessage, "id">) => void;
   clearChatHistory: () => void;
   addHistory: (item: Omit<HistoryItem, "id">) => void;
+  initHistory: (items: HistoryItem[]) => void;
   restoreHistory: (item: HistoryItem) => void;
   setDarkMode: (darkMode: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
+  setError: (error: string | null) => void;
 }
 
 const defaultForm: FormData = {
@@ -66,6 +68,7 @@ const defaultForm: FormData = {
 };
 
 export function loadHistory(): HistoryItem[] {
+  if (typeof window === "undefined") return [];
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) return [];
@@ -87,8 +90,18 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   report: null,
   chatHistory: [],
   history: typeof window !== "undefined" ? loadHistory() : [],
-  darkMode: false,
+  darkMode: (() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const stored = localStorage.getItem("darkMode");
+      if (stored !== null) return JSON.parse(stored) as boolean;
+      return typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch {
+      return false;
+    }
+  })(),
   isLoading: false,
+  error: null,
 
   setForm: (partial) =>
     set((state) => ({ form: { ...state.form, ...partial } })),
@@ -96,14 +109,18 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   setReport: (report) => set({ report }),
 
   addChatMessage: (message) =>
-    set((state) => ({ chatHistory: [...state.chatHistory, message] })),
+    set((state) => ({
+      chatHistory: [...state.chatHistory, { ...message, id: crypto.randomUUID() }],
+    })),
 
   clearChatHistory: () => set({ chatHistory: [] }),
+
+  initHistory: (items) => set({ history: items }),
 
   addHistory: (item) => {
     const newItem: HistoryItem = {
       ...item,
-      id: String(Date.now()),
+      id: crypto.randomUUID(),
     };
     const next = [newItem, ...get().history].slice(0, 50);
     set({ history: next });
@@ -127,4 +144,6 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   setIsLoading: (isLoading) => set({ isLoading }),
+
+  setError: (error) => set({ error }),
 }));

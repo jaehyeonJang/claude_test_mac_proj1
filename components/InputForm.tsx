@@ -13,26 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-
-function Spinner(props: React.ComponentProps<"svg">) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="animate-spin"
-      {...props}
-    >
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
-  );
-}
+import { Spinner } from "@/components/ui/spinner";
 
 export function InputForm() {
   const form = useTaxStore((s) => s.form);
@@ -41,11 +22,15 @@ export function InputForm() {
   const setIsLoading = useTaxStore((s) => s.setIsLoading);
   const setReport = useTaxStore((s) => s.setReport);
   const addHistory = useTaxStore((s) => s.addHistory);
+  const report = useTaxStore((s) => s.report);
+  const error = useTaxStore((s) => s.error);
+  const setError = useTaxStore((s) => s.setError);
 
   const hasAnyValue = Object.values(form).some((v) => v !== "");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
     try {
       const res = await fetch("/api/analyze", {
@@ -53,25 +38,35 @@ export function InputForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
       const data = await res.json();
       setReport(data);
       addHistory({ timestamp: Date.now(), form, report: data });
       setForm({ incomeType: "", annualIncome: "", dependents: "", house: "", financialIncome: "", pension: "", prepaidTax: "", freeText: "" });
     } catch {
-      // error — no-op
+      setError("분석 중 오류가 발생했습니다. 다시 시도해 주세요.");
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className={isLoading ? "opacity-50 pointer-events-none" : ""}>
+      {!report && !isLoading && (
+        <div className="rounded-md border p-3 text-sm text-muted-foreground">
+          폼을 입력하거나 추가 의뢰란에 내용을 입력하면 분석 요청이 가능합니다.
+        </div>
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">{error}</p>
+      )}
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="incomeType">소득 유형</FieldLabel>
           <Select
             value={form.incomeType}
             onValueChange={(v) => setForm({ incomeType: v })}
+            disabled={isLoading}
           >
             <SelectTrigger id="incomeType">
               <SelectValue placeholder="선택하세요" />
@@ -92,6 +87,8 @@ export function InputForm() {
             id="annualIncome"
             value={form.annualIncome}
             onChange={(e) => setForm({ annualIncome: e.target.value })}
+            disabled={isLoading}
+            placeholder="예: 5,000만원"
           />
         </Field>
 
@@ -102,6 +99,7 @@ export function InputForm() {
             type="number"
             value={form.dependents}
             onChange={(e) => setForm({ dependents: e.target.value })}
+            disabled={isLoading}
           />
         </Field>
 
@@ -110,6 +108,7 @@ export function InputForm() {
           <Select
             value={form.house}
             onValueChange={(v) => setForm({ house: v })}
+            disabled={isLoading}
           >
             <SelectTrigger id="house">
               <SelectValue placeholder="선택하세요" />
@@ -129,6 +128,7 @@ export function InputForm() {
           <Select
             value={form.financialIncome}
             onValueChange={(v) => setForm({ financialIncome: v })}
+            disabled={isLoading}
           >
             <SelectTrigger id="financialIncome">
               <SelectValue placeholder="선택하세요" />
@@ -148,6 +148,7 @@ export function InputForm() {
           <Select
             value={form.pension}
             onValueChange={(v) => setForm({ pension: v })}
+            disabled={isLoading}
           >
             <SelectTrigger id="pension">
               <SelectValue placeholder="선택하세요" />
@@ -167,15 +168,19 @@ export function InputForm() {
             id="prepaidTax"
             value={form.prepaidTax}
             onChange={(e) => setForm({ prepaidTax: e.target.value })}
+            disabled={isLoading}
+            placeholder="예: 300만원"
           />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="freeText">자유 텍스트</FieldLabel>
+          <FieldLabel htmlFor="freeText">자유 텍스트 / 추가 의뢰 (선택)</FieldLabel>
           <Textarea
             id="freeText"
             value={form.freeText}
             onChange={(e) => setForm({ freeText: e.target.value })}
+            disabled={isLoading}
+            placeholder="폼을 채우지 않아도 여기에 직접 입력하여 분석 요청이 가능합니다."
           />
         </Field>
 

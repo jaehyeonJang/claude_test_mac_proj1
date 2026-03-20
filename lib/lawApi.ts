@@ -44,6 +44,10 @@ export function buildSearchQuery(formData: Record<string, unknown>): string {
   if (formData.incomeType) parts.push(String(formData.incomeType));
   if (formData.freeText) parts.push(String(formData.freeText));
 
+  if (formData.house === "다주택") parts.push("종합부동산세");
+  if (formData.financialIncome === "500만원 초과") parts.push("금융소득종합과세");
+  if (formData.pension === "있음") parts.push("연금소득");
+
   if (parts.length === 0) parts.push("소득세 절세");
 
   return parts.join(" ") + " 소득세법";

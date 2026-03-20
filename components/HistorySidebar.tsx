@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { Clock } from "lucide-react";
 import { useTaxStore, loadHistory } from "@/lib/store/taxStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { HistoryItem } from "@/lib/store/taxStore";
 
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
@@ -28,19 +28,18 @@ export function HistorySidebar() {
   useEffect(() => {
     const loaded = loadHistory();
     if (loaded.length > 0) {
-      useTaxStore.setState({ history: loaded });
+      useTaxStore.getState().initHistory(loaded);
     }
   }, []);
 
-  const handleClick = (item: HistoryItem) => {
-    restoreHistory(item);
-  };
-
   return (
     <aside>
-      <h2 className="text-lg font-semibold mb-2">히스토리</h2>
+      <h2 className="text-lg font-semibold mb-2">조회 히스토리</h2>
       {history.length === 0 ? (
-        <p className="text-muted-foreground text-sm">히스토리가 없습니다</p>
+        <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+          <Clock className="h-5 w-5" />
+          <p className="text-sm">분석 기록이 없습니다</p>
+        </div>
       ) : (
         <ScrollArea>
           <ul role="list">
@@ -48,7 +47,14 @@ export function HistorySidebar() {
               <li
                 key={item.id}
                 role="listitem"
-                onClick={() => handleClick(item)}
+                tabIndex={0}
+                onClick={() => restoreHistory(item)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    restoreHistory(item);
+                  }
+                }}
                 className="cursor-pointer rounded-md p-2 hover:bg-accent"
               >
                 <span className="block text-sm font-medium">

@@ -54,17 +54,16 @@ export function ReportView() {
         <TabsTrigger value="statutes">조문 보기</TabsTrigger>
       </TabsList>
       <TabsContent value="interpretation">
-        {activeTab === "interpretation" && (
-          <p>{renderInterpretation(report.interpretation)}</p>
-        )}
+        <p>{renderInterpretation(report.interpretation)}</p>
       </TabsContent>
       <TabsContent value="statutes">
-        {activeTab === "statutes" &&
-          report.statutes.map((s) => (
-            <p key={s.name}>
-              {s.name}: {s.text}
-            </p>
+        <div className="flex flex-col gap-3">
+          {report.statutes.map((s, i) => (
+            <div key={i} className="border rounded-lg p-4">
+              <p className="text-sm">{s.name}: {s.text}</p>
+            </div>
           ))}
+        </div>
       </TabsContent>
     </Tabs>
   );

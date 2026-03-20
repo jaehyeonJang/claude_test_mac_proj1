@@ -4,26 +4,8 @@ import { useState } from "react";
 import { useTaxStore } from "@/lib/store/taxStore";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-function Spinner(props: React.ComponentProps<"svg">) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="animate-spin"
-      {...props}
-    >
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
-  );
-}
+import { Spinner } from "@/components/ui/spinner";
+import { Send } from "lucide-react";
 
 export function ChatSection() {
   const report = useTaxStore((s) => s.report);
@@ -34,12 +16,14 @@ export function ChatSection() {
   const chatHistory = useTaxStore((s) => s.chatHistory);
   const form = useTaxStore((s) => s.form);
   const [input, setInput] = useState("");
+  const [chatError, setChatError] = useState<string | null>(null);
 
   if (!report) return null;
 
   async function handleSend() {
     const message = input.trim();
     if (!message || isLoading) return;
+    setChatError(null);
     setInput("");
     addChatMessage({ role: "user", content: message });
     setIsLoading(true);
@@ -49,11 +33,12 @@ export function ChatSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, freeText: message }),
       });
+      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
       const data = await res.json();
       setReport(data);
       addChatMessage({ role: "assistant", content: "보고서가 업데이트되었습니다." });
     } catch {
-      // no-op
+      setChatError("메시지 전송 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -61,9 +46,15 @@ export function ChatSection() {
 
   return (
     <section aria-label="채팅">
-      <div role="log" aria-live="polite">
-        {chatHistory.map((msg, i) => (
-          <article key={i}>
+      <div role="log" aria-live="polite" className="flex flex-col gap-2">
+        {chatHistory.map((msg) => (
+          <article
+            key={msg.id}
+            className={msg.role === "user"
+              ? "self-end rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[80%]"
+              : "self-start rounded-lg bg-muted px-3 py-2 text-sm max-w-[80%]"
+            }
+          >
             <p>{msg.content}</p>
           </article>
         ))}
@@ -81,11 +72,13 @@ export function ChatSection() {
             }
           }}
         />
-        <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
-          {isLoading && <Spinner data-icon="inline-start" />}
-          전송
+        <Button onClick={handleSend} disabled={isLoading || !input.trim()} aria-label="전송">
+          {isLoading ? <Spinner /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
+      {chatError && (
+        <p role="alert" className="text-xs text-destructive">{chatError}</p>
+      )}
     </section>
   );
 }

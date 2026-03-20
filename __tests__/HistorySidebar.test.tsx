@@ -47,7 +47,10 @@ vi.mock("@/lib/store/taxStore", () => ({
       };
       return selector(state);
     }),
-    { setState: vi.fn() }
+    {
+      setState: vi.fn(),
+      getState: vi.fn(() => ({ initHistory: vi.fn() })),
+    }
   ),
   loadHistory: vi.fn(() => []),
 }));
@@ -77,7 +80,7 @@ describe("HistorySidebar", () => {
     setMockHistory([]);
     render(<HistorySidebar />);
 
-    expect(screen.getByText("히스토리가 없습니다")).toBeInTheDocument();
+    expect(screen.getByText("분석 기록이 없습니다")).toBeInTheDocument();
   });
 
   it("히스토리 항목이 있으면 incomeType 텍스트를 표시한다", () => {
