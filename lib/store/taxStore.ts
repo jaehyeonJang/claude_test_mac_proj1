@@ -21,6 +21,7 @@ export type { Statute };
 export interface ReportData {
   statutes: Statute[];
   interpretation: string;
+  statutesAvailable?: boolean;
 }
 
 export interface ChatMessage {
@@ -54,6 +55,8 @@ export interface TaxStoreState {
   setDarkMode: (darkMode: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
+  submitAnalysis: () => Promise<void>;
+  sendChatMessage: (message: string) => Promise<void>;
 }
 
 const defaultForm: FormData = {
@@ -128,7 +131,22 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   restoreHistory: (item) => {
-    set({ form: item.form, report: item.report, chatHistory: [] });
+    const { form, report } = get();
+
+    if (report) {
+      const autoSaveItem: HistoryItem = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        form,
+        report,
+      };
+      const currentHistory = get().history;
+      const next = [autoSaveItem, ...currentHistory].slice(0, 50);
+      saveHistory(next);
+      set({ history: next, form: item.form, report: item.report, chatHistory: [] });
+    } else {
+      set({ form: item.form, report: item.report, chatHistory: [] });
+    }
   },
 
   setDarkMode: (darkMode) => {
@@ -146,4 +164,46 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   setIsLoading: (isLoading) => set({ isLoading }),
 
   setError: (error) => set({ error }),
+
+  submitAnalysis: async () => {
+    const { form, addHistory } = get();
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
+      const data = await res.json();
+      set({ report: data });
+      get().addHistory({ timestamp: Date.now(), form, report: data });
+      set({ form: { incomeType: '', annualIncome: '', dependents: '', house: '', financialIncome: '', pension: '', prepaidTax: '', freeText: '' } });
+    } catch (e) {
+      set({ error: '분석 중 오류가 발생했습니다. 다시 시도해 주세요.' });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  sendChatMessage: async (message: string) => {
+    const { form, addChatMessage } = get();
+    addChatMessage({ role: 'user', content: message });
+    set({ isLoading: true });
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, chatMessage: message }),
+      });
+      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
+      const data = await res.json();
+      set({ report: data });
+      addChatMessage({ role: 'assistant', content: '보고서가 업데이트되었습니다.' });
+    } catch {
+      throw new Error('메시지 전송 중 오류가 발생했습니다.');
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 }));

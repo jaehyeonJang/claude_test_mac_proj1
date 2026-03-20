@@ -57,13 +57,17 @@ export function ReportView() {
         <p>{renderInterpretation(report.interpretation)}</p>
       </TabsContent>
       <TabsContent value="statutes">
-        <div className="flex flex-col gap-3">
-          {report.statutes.map((s, i) => (
-            <div key={i} className="border rounded-lg p-4">
-              <p className="text-sm">{s.name}: {s.text}</p>
-            </div>
-          ))}
-        </div>
+        {report.statutes.length === 0 || report.statutesAvailable === false ? (
+          <p className="text-sm text-muted-foreground">법령 데이터를 조회하지 못했습니다. AI 분석 결과만 제공됩니다.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {report.statutes.map((s, i) => (
+              <div key={i} className="border rounded-lg p-4">
+                <p className="text-sm">{s.name}: {s.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </TabsContent>
     </Tabs>
   );

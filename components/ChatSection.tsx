@@ -10,11 +10,8 @@ import { Send } from "lucide-react";
 export function ChatSection() {
   const report = useTaxStore((s) => s.report);
   const isLoading = useTaxStore((s) => s.isLoading);
-  const setIsLoading = useTaxStore((s) => s.setIsLoading);
-  const setReport = useTaxStore((s) => s.setReport);
-  const addChatMessage = useTaxStore((s) => s.addChatMessage);
   const chatHistory = useTaxStore((s) => s.chatHistory);
-  const form = useTaxStore((s) => s.form);
+  const sendChatMessage = useTaxStore((s) => s.sendChatMessage);
   const [input, setInput] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
 
@@ -23,24 +20,12 @@ export function ChatSection() {
   async function handleSend() {
     const message = input.trim();
     if (!message || isLoading) return;
-    setChatError(null);
     setInput("");
-    addChatMessage({ role: "user", content: message });
-    setIsLoading(true);
+    setChatError(null);
     try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, freeText: message }),
-      });
-      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
-      const data = await res.json();
-      setReport(data);
-      addChatMessage({ role: "assistant", content: "보고서가 업데이트되었습니다." });
-    } catch {
+      await sendChatMessage(message);
+    } catch (e) {
       setChatError("메시지 전송 중 오류가 발생했습니다.");
-    } finally {
-      setIsLoading(false);
     }
   }
 

@@ -19,36 +19,16 @@ export function InputForm() {
   const form = useTaxStore((s) => s.form);
   const setForm = useTaxStore((s) => s.setForm);
   const isLoading = useTaxStore((s) => s.isLoading);
-  const setIsLoading = useTaxStore((s) => s.setIsLoading);
-  const setReport = useTaxStore((s) => s.setReport);
-  const addHistory = useTaxStore((s) => s.addHistory);
   const report = useTaxStore((s) => s.report);
   const error = useTaxStore((s) => s.error);
-  const setError = useTaxStore((s) => s.setError);
+  const submitAnalysis = useTaxStore((s) => s.submitAnalysis);
 
   const hasAnyValue = Object.values(form).some((v) => v !== "");
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
-      const data = await res.json();
-      setReport(data);
-      addHistory({ timestamp: Date.now(), form, report: data });
-      setForm({ incomeType: "", annualIncome: "", dependents: "", house: "", financialIncome: "", pension: "", prepaidTax: "", freeText: "" });
-    } catch {
-      setError("분석 중 오류가 발생했습니다. 다시 시도해 주세요.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    await submitAnalysis();
+  };
 
   return (
     <form onSubmit={handleSubmit} className={isLoading ? "opacity-50 pointer-events-none" : ""}>

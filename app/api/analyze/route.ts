@@ -15,15 +15,18 @@ export async function POST(request: Request) {
 
   const query = buildSearchQuery(formData);
 
-  const [statutes, interpretation] = await Promise.all([
-    searchStatutes(query).catch(() => []),
-    analyzeWithGemini(formData, [], chatMessage),
-  ]);
+  let statutes: Awaited<ReturnType<typeof searchStatutes>> = [];
+  let statutesAvailable = false;
 
-  // Re-run Gemini with statutes if we got any (statutes enrich the analysis)
-  // For parallel execution, we start both immediately but Gemini initially runs without statutes
-  // If statutes came back, we already have the interpretation from the parallel call
-  // In a production app, you might use a streaming approach instead
+  try {
+    statutes = await searchStatutes(query);
+    statutesAvailable = statutes.length > 0;
+  } catch {
+    statutes = [];
+    statutesAvailable = false;
+  }
 
-  return NextResponse.json({ statutes, interpretation });
+  const interpretation = await analyzeWithGemini(formData, statutes, chatMessage);
+
+  return NextResponse.json({ statutes, interpretation, statutesAvailable });
 }
