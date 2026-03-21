@@ -14,6 +14,13 @@ export interface FormData {
   pension: string;
   prepaidTax: string;
   freeText: string;
+  // Additional deduction fields (optional — hidden in collapsible section)
+  pensionSavings?: string;
+  creditCard?: string;
+  medicalExpense?: string;
+  children?: string;
+  housingSubscription?: string;
+  monthlyRent?: string;
 }
 
 export type { Statute };
@@ -44,6 +51,7 @@ export interface TaxStoreState {
   history: HistoryItem[];
   darkMode: boolean;
   isLoading: boolean;
+  analysisStep: 'law' | 'ai' | null;
   error: string | null;
   setForm: (form: Partial<FormData>) => void;
   setReport: (report: ReportData | null) => void;
@@ -71,6 +79,12 @@ const defaultForm: FormData = {
   pension: "",
   prepaidTax: "",
   freeText: "",
+  pensionSavings: "",
+  creditCard: "",
+  medicalExpense: "",
+  children: "",
+  housingSubscription: "",
+  monthlyRent: "",
 };
 
 export function loadHistory(): HistoryItem[] {
@@ -98,6 +112,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   history: [],
   darkMode: false,
   isLoading: false,
+  analysisStep: null,
   error: null,
 
   setForm: (partial) =>
@@ -152,7 +167,12 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
 
   submitAnalysis: async () => {
     const { form, addHistory } = get();
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, analysisStep: 'law' });
+
+    const stepTimer = setTimeout(() => {
+      if (get().isLoading) set({ analysisStep: 'ai' });
+    }, 1500);
+
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -163,17 +183,18 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
       const data = await res.json();
       set({ report: data });
       get().addHistory({ timestamp: Date.now(), form, report: data });
-      set({ form: { incomeType: '', annualIncome: '', dependents: '', house: '', financialIncome: '', pension: '', prepaidTax: '', freeText: '' } });
+      set({ form: defaultForm });
     } catch (e) {
       console.error('[submitAnalysis]', e);
       set({ error: '분석 중 오류가 발생했습니다. 다시 시도해 주세요.' });
     } finally {
-      set({ isLoading: false });
+      clearTimeout(stepTimer);
+      set({ isLoading: false, analysisStep: null });
     }
   },
 
   resetAnalysis: () => {
-    set({ report: null, chatHistory: [], error: null, form: defaultForm });
+    set({ report: null, chatHistory: [], error: null, form: defaultForm, analysisStep: null });
   },
 
   sendChatMessage: async (message: string) => {

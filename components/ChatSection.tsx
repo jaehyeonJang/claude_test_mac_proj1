@@ -36,9 +36,9 @@ export function ChatSection() {
   }
 
   return (
-    <section aria-label="채팅" className="border rounded-xl overflow-hidden">
+    <section aria-label="채팅" className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center gap-2">
+      <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center gap-2 shrink-0">
         <MessageCircle className="h-4 w-4 text-muted-foreground" />
         <div>
           <h3 className="text-sm font-semibold">추가 논의</h3>
@@ -47,7 +47,7 @@ export function ChatSection() {
       </div>
 
       {/* Messages */}
-      <div className="h-56 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-3 min-h-40">
         <div role="log" aria-live="polite" className="flex flex-col gap-2 h-full">
           {chatHistory.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -74,7 +74,7 @@ export function ChatSection() {
       </div>
 
       {/* Input */}
-      <div className="border-t p-3 space-y-2">
+      <div className="border-t p-3 space-y-2 shrink-0">
         <div className="flex gap-2">
           <Input
             aria-label="채팅 메시지"

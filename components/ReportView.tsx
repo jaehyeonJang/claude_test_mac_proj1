@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useTaxStore } from "@/lib/store/taxStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Copy, Check } from "lucide-react";
 
 // Renders interpretation text splitting "근로소득" pattern across spans so that
 // getNodeText (used by testing-library's getByText) sees only non-근로소득 text nodes.
@@ -24,19 +25,57 @@ function renderInterpretation(text: string) {
   });
 }
 
+// Highlights currency amounts (e.g. 300만원, 1억원, 5,000만원) and percentages (15%)
+function highlightAmounts(text: string): React.ReactNode {
+  const pattern = /(\d[\d,]*(?:\.\d+)?(?:만원|억원|천원|원|%|퍼센트))/g;
+  const parts = text.split(pattern);
+  if (parts.length === 1) return text;
+  return (
+    <>
+      {parts.map((part, i) =>
+        pattern.test(part) ? (
+          <mark
+            key={i}
+            className="bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 rounded px-0.5 font-medium not-italic"
+          >
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
 // Renders inline markdown (**bold**) while preserving the renderInterpretation constraint.
 function renderInline(text: string, key: number): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  if (parts.length === 1) {
-    return <span key={key}>{renderInterpretation(text)}</span>;
+  const boldParts = text.split(/(\*\*[^*]+\*\*)/g);
+  if (boldParts.length === 1) {
+    // No bold — apply highlights + interpretation split
+    const highlighted = highlightAmounts(text);
+    if (typeof highlighted === "string") {
+      return <span key={key}>{renderInterpretation(text)}</span>;
+    }
+    // highlighted is ReactNode (has amounts) — wrap for interpretation compat
+    return <span key={key}>{highlighted}</span>;
   }
   return (
     <span key={key}>
-      {parts.map((part, i) => {
+      {boldParts.map((part, i) => {
         if (part.startsWith("**") && part.endsWith("**")) {
-          return <strong key={i}>{renderInterpretation(part.slice(2, -2))}</strong>;
+          const inner = part.slice(2, -2);
+          return (
+            <strong key={i} className="font-semibold">
+              {renderInterpretation(inner)}
+            </strong>
+          );
         }
-        return renderInterpretation(part);
+        const highlighted = highlightAmounts(part);
+        if (typeof highlighted === "string") {
+          return renderInterpretation(part);
+        }
+        return <span key={i}>{highlighted}</span>;
       })}
     </span>
   );
@@ -108,7 +147,9 @@ function renderMarkdown(text: string): React.ReactNode {
 export function ReportView() {
   const report = useTaxStore((s) => s.report);
   const isLoading = useTaxStore((s) => s.isLoading);
+  const analysisStep = useTaxStore((s) => s.analysisStep);
   const [activeTab, setActiveTab] = useState("interpretation");
+  const [copied, setCopied] = useState(false);
 
   if (!report && !isLoading) {
     return null;
@@ -116,10 +157,33 @@ export function ReportView() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
+      <div className="flex flex-col gap-4 py-2">
+        {analysisStep ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                <span
+                  className={`inline-block w-2 h-2 rounded-full ${analysisStep === "law" ? "bg-primary animate-pulse" : "bg-muted"}`}
+                />
+                <span
+                  className={`inline-block w-2 h-2 rounded-full ${analysisStep === "ai" ? "bg-primary animate-pulse" : "bg-muted"}`}
+                />
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {analysisStep === "law" ? "관련 법령 조회 중..." : "AI 분석 중..."}
+              </span>
+            </div>
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        )}
       </div>
     );
   }
@@ -128,12 +192,41 @@ export function ReportView() {
     return null;
   }
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(report.interpretation);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select all text (noop — clipboard may be unavailable in test env)
+    }
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList>
-        <TabsTrigger value="interpretation">해석 보기</TabsTrigger>
-        <TabsTrigger value="statutes">조문 보기</TabsTrigger>
-      </TabsList>
+      <div className="flex items-center justify-between mb-1">
+        <TabsList>
+          <TabsTrigger value="interpretation">해석 보기</TabsTrigger>
+          <TabsTrigger value="statutes">조문 보기</TabsTrigger>
+        </TabsList>
+        <button
+          onClick={handleCopy}
+          aria-label="보고서 복사"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3.5 w-3.5 text-green-500" />
+              <span className="text-green-500">복사됨</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3.5 w-3.5" />
+              <span>복사</span>
+            </>
+          )}
+        </button>
+      </div>
       <TabsContent value="interpretation">
         {renderMarkdown(report.interpretation)}
       </TabsContent>

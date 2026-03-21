@@ -31,13 +31,28 @@ export function PageLayout() {
         onNewAnalysis={handleNewAnalysis}
         onRestoreHistory={() => setShowForm(false)}
       />
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
-          {showForm && <InputForm />}
-          <ReportView />
-          <ChatSection />
+
+      {showForm ? (
+        /* Form view: single column centered */
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
+            <InputForm />
+            <ReportView />
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Report view: two-panel layout */
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left panel — report, wider */}
+          <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
+            <ReportView />
+          </div>
+          {/* Right panel — chat, fixed width */}
+          <div className="w-96 shrink-0 border-l flex flex-col overflow-hidden">
+            <ChatSection />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTaxStore } from "@/lib/store/taxStore";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import {
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export function InputForm() {
   const form = useTaxStore((s) => s.form);
@@ -22,8 +24,21 @@ export function InputForm() {
   const report = useTaxStore((s) => s.report);
   const error = useTaxStore((s) => s.error);
   const submitAnalysis = useTaxStore((s) => s.submitAnalysis);
+  const analysisStep = useTaxStore((s) => s.analysisStep);
 
-  const hasAnyValue = Object.values(form).some((v) => v !== "");
+  const [incomeUnit, setIncomeUnit] = useState("만원");
+  const [showExtra, setShowExtra] = useState(false);
+
+  // !!v handles both "" and undefined (spec tests reset with only 8 original fields)
+  const hasAnyValue = Object.values(form).some((v) => !!v);
+
+  const handleUnitChange = (unit: string) => {
+    setIncomeUnit(unit);
+    const stripped = form.annualIncome.replace(/만원$|억원$/, "").trim();
+    if (stripped) {
+      setForm({ annualIncome: stripped + unit });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +81,25 @@ export function InputForm() {
 
           <Field>
             <FieldLabel htmlFor="annualIncome">연간 소득</FieldLabel>
-            <Input
-              id="annualIncome"
-              value={form.annualIncome}
-              onChange={(e) => setForm({ annualIncome: e.target.value })}
-              disabled={isLoading}
-              placeholder="예: 5,000만원"
-            />
+            <div className="flex gap-1">
+              <Input
+                id="annualIncome"
+                value={form.annualIncome}
+                onChange={(e) => setForm({ annualIncome: e.target.value })}
+                disabled={isLoading}
+                placeholder="5000"
+                className="flex-1 min-w-0"
+              />
+              <Select value={incomeUnit} onValueChange={handleUnitChange} disabled={isLoading}>
+                <SelectTrigger className="w-[5.5rem] shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="만원">만원</SelectItem>
+                  <SelectItem value="억원">억원</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </Field>
 
           <Field>
@@ -158,6 +185,88 @@ export function InputForm() {
           </Field>
         </div>
 
+        {/* Collapsible additional deduction fields */}
+        <button
+          type="button"
+          onClick={() => setShowExtra((v) => !v)}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5"
+        >
+          {showExtra ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          추가 공제 항목 (선택)
+        </button>
+
+        {showExtra && (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3 pt-1 border-t">
+            <Field>
+              <FieldLabel htmlFor="pensionSavings">연금저축 / IRP</FieldLabel>
+              <Input
+                id="pensionSavings"
+                value={form.pensionSavings ?? ""}
+                onChange={(e) => setForm({ pensionSavings: e.target.value })}
+                disabled={isLoading}
+                placeholder="예: 400만원"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="creditCard">신용카드 사용액</FieldLabel>
+              <Input
+                id="creditCard"
+                value={form.creditCard ?? ""}
+                onChange={(e) => setForm({ creditCard: e.target.value })}
+                disabled={isLoading}
+                placeholder="예: 2000만원"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="medicalExpense">의료비</FieldLabel>
+              <Input
+                id="medicalExpense"
+                value={form.medicalExpense ?? ""}
+                onChange={(e) => setForm({ medicalExpense: e.target.value })}
+                disabled={isLoading}
+                placeholder="예: 300만원"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="children">자녀 수</FieldLabel>
+              <Input
+                id="children"
+                type="number"
+                value={form.children ?? ""}
+                onChange={(e) => setForm({ children: e.target.value })}
+                disabled={isLoading}
+                placeholder="0"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="housingSubscription">주택청약 납입액</FieldLabel>
+              <Input
+                id="housingSubscription"
+                value={form.housingSubscription ?? ""}
+                onChange={(e) => setForm({ housingSubscription: e.target.value })}
+                disabled={isLoading}
+                placeholder="예: 240만원"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="monthlyRent">월세 납입액</FieldLabel>
+              <Input
+                id="monthlyRent"
+                value={form.monthlyRent ?? ""}
+                onChange={(e) => setForm({ monthlyRent: e.target.value })}
+                disabled={isLoading}
+                placeholder="예: 1200만원"
+              />
+            </Field>
+          </div>
+        )}
+
         <Field>
           <FieldLabel htmlFor="freeText">자유 텍스트 / 추가 의뢰 (선택)</FieldLabel>
           <Textarea
@@ -169,10 +278,18 @@ export function InputForm() {
           />
         </Field>
 
-        <Button type="submit" disabled={!hasAnyValue || isLoading}>
-          {isLoading && <Spinner data-icon="inline-start" />}
-          분석 요청
-        </Button>
+        <div className="space-y-2">
+          <Button type="submit" disabled={!hasAnyValue || isLoading}>
+            {isLoading && <Spinner data-icon="inline-start" />}
+            분석 요청
+          </Button>
+          {isLoading && analysisStep && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Spinner className="h-3 w-3" />
+              {analysisStep === "law" ? "관련 법령 조회 중..." : "AI 분석 중..."}
+            </p>
+          )}
+        </div>
       </FieldGroup>
     </form>
   );

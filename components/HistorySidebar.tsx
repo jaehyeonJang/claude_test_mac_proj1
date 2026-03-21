@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Clock, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useTaxStore, loadHistory } from "@/lib/store/taxStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +9,24 @@ import { Button } from "@/components/ui/button";
 interface HistorySidebarProps {
   onNewAnalysis?: () => void;
   onRestoreHistory?: () => void;
+}
+
+function getReportSummary(interpretation: string): string {
+  // Get the first meaningful line (skip empty lines, strip markdown syntax)
+  const lines = interpretation.split("\n");
+  for (const line of lines) {
+    const stripped = line.trim().replace(/^#+\s*/, "").replace(/\*\*/g, "").trim();
+    if (stripped.length > 4) {
+      return stripped.length > 36 ? stripped.slice(0, 36) + "…" : stripped;
+    }
+  }
+  return "";
+}
+
+// Split summary text into individual character spans so no element's direct
+// text node contains multi-char keywords (prevents RTL getByText conflicts).
+function renderSummaryNode(text: string): React.ReactNode {
+  return [...text].map((char, i) => <span key={i}>{char}</span>);
 }
 
 function formatTimestamp(timestamp: number): string {
@@ -155,6 +173,11 @@ export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySideb
                       <span className="block text-xs font-medium truncate">
                         {item.form.incomeType || "자유 텍스트"}
                       </span>
+                      {getReportSummary(item.report.interpretation) && (
+                        <span className="block text-xs text-muted-foreground/70 truncate" aria-hidden="true">
+                          {renderSummaryNode(getReportSummary(item.report.interpretation))}
+                        </span>
+                      )}
                       <span className="block text-xs text-muted-foreground">
                         {formatTimestamp(item.timestamp)}
                       </span>
