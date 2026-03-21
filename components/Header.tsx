@@ -32,7 +32,7 @@ export function Header() {
     <header className="flex items-center justify-between p-4">
       <h1 className="text-xl font-bold flex items-center gap-2">
         <Landmark className="h-5 w-5" />
-        <span>세금 절세 도우미</span>
+        <span>TAX Analyzer</span>
       </h1>
       <div className="flex items-center gap-2">
         <Label htmlFor="dark-mode-toggle">다크 모드</Label>
