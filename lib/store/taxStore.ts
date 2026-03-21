@@ -170,7 +170,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   sendChatMessage: async (message: string) => {
-    const { report, addChatMessage } = get();
+    const { form, report, addChatMessage } = get();
     const historySnapshot = get().chatHistory;
     addChatMessage({ role: 'user', content: message });
     set({ isLoading: true });
@@ -182,6 +182,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
           currentReport: report?.interpretation ?? '',
           chatHistory: historySnapshot,
           message,
+          formData: form,
         }),
       });
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);

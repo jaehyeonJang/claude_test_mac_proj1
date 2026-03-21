@@ -13,6 +13,11 @@ export async function analyzeWithGemini(
   statutes: Statute[],
   chatMessage?: string
 ): Promise<string> {
+  const lawNotice =
+    statutes.length === 0
+      ? "\n\n※ 관련 법령 데이터를 조회하지 못했습니다. 일반 세법 지식을 기반으로 분석합니다."
+      : "";
+
   const statuteSection =
     statutes.length > 0
       ? `\n\n관련 법령:\n${statutes.map((s) => `- ${s.name}: ${s.text}`).join("\n")}`
@@ -36,7 +41,7 @@ export async function analyzeWithGemini(
 - 금융소득: ${formData.financialIncome || "미입력"}
 - 연금/퇴직소득: ${formData.pension || "미입력"}
 - 기납부세액: ${formData.prepaidTax || "미입력"}
-- 자유 텍스트: ${freeTextValue}${statuteSection}${chatSection}
+- 자유 텍스트: ${freeTextValue}${lawNotice}${statuteSection}${chatSection}
 
 절세 방안을 구체적으로 분석하고, 적용 가능한 공제 항목과 예상 절감액을 제시해주세요.`;
 
@@ -51,8 +56,19 @@ export async function analyzeWithGemini(
 export async function chatWithGemini(
   currentReport: string,
   chatHistory: Array<{ role: string; content: string }>,
-  message: string
+  message: string,
+  statutes: Statute[] = []
 ): Promise<string> {
+  const lawNotice =
+    statutes.length === 0
+      ? "\n\n※ 관련 법령 데이터를 조회하지 못했습니다. 보고서와 일반 세법 지식을 기반으로 답변합니다."
+      : "";
+
+  const statuteSection =
+    statutes.length > 0
+      ? `\n\n관련 법령:\n${statutes.map((s) => `- ${s.name}: ${s.text}`).join("\n")}`
+      : "";
+
   const historySection =
     chatHistory.length > 0
       ? `\n\n대화 내역:\n${chatHistory
@@ -61,14 +77,14 @@ export async function chatWithGemini(
           .join("\n")}`
       : "";
 
-  const prompt = `당신은 한국 세법 전문가입니다. 아래 절세 분석 보고서를 바탕으로 사용자의 질문에 간결하고 명확하게 답변해주세요.${historySection}
+  const prompt = `당신은 한국 세법 전문가입니다. 아래 절세 분석 보고서와 관련 법령을 바탕으로 사용자의 질문에 간결하고 명확하게 답변해주세요.${lawNotice}${statuteSection}${historySection}
 
 현재 보고서:
 ${currentReport}
 
 사용자 질문: ${sanitizeInput(message)}
 
-보고서 내용을 참고하여 2-3문장으로 간결하게 답변해주세요.`;
+관련 법령과 보고서 내용을 근거로 2-3문장으로 간결하게 답변해주세요.`;
 
   const result = await generateText({ model, prompt });
   return result.text;
