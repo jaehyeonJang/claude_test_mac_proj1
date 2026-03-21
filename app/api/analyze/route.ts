@@ -3,9 +3,9 @@ import { searchStatutes, buildSearchQuery } from "@/lib/lawApi";
 import { analyzeWithGemini } from "@/lib/geminiApi";
 
 export async function POST(request: Request) {
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return NextResponse.json(
-      { error: "GEMINI_API_KEY not configured" },
+      { error: "GOOGLE_GENERATIVE_AI_API_KEY not configured" },
       { status: 500 }
     );
   }
@@ -26,7 +26,14 @@ export async function POST(request: Request) {
     statutesAvailable = false;
   }
 
-  const interpretation = await analyzeWithGemini(formData, statutes, chatMessage);
-
-  return NextResponse.json({ statutes, interpretation, statutesAvailable });
+  try {
+    const interpretation = await analyzeWithGemini(formData, statutes, chatMessage);
+    return NextResponse.json({ statutes, interpretation, statutesAvailable });
+  } catch (e) {
+    console.error("[/api/analyze] analyzeWithGemini 오류:", e);
+    return NextResponse.json(
+      { error: "AI 분석 중 오류가 발생했습니다.", detail: String(e) },
+      { status: 500 }
+    );
+  }
 }

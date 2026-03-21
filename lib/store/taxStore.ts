@@ -171,6 +171,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
       get().addHistory({ timestamp: Date.now(), form, report: data });
       set({ form: { incomeType: '', annualIncome: '', dependents: '', house: '', financialIncome: '', pension: '', prepaidTax: '', freeText: '' } });
     } catch (e) {
+      console.error('[submitAnalysis]', e);
       set({ error: '분석 중 오류가 발생했습니다. 다시 시도해 주세요.' });
     } finally {
       set({ isLoading: false });
@@ -191,7 +192,8 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
       const data = await res.json();
       set({ report: data });
       addChatMessage({ role: 'assistant', content: '보고서가 업데이트되었습니다.' });
-    } catch {
+    } catch (e) {
+      console.error('[sendChatMessage]', e);
       throw new Error('메시지 전송 중 오류가 발생했습니다.');
     } finally {
       set({ isLoading: false });

@@ -2,7 +2,7 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import type { Statute } from "./lawApi";
 
-const model = google("gemini-2.0-flash");
+const model = google("gemini-2.5-flash");
 
 function sanitizeInput(input: string): string {
   return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, 2000);

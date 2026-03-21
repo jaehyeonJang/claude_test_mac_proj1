@@ -38,7 +38,7 @@ describe("POST /api/analyze", () => {
   beforeEach(() => {
     vi.resetModules();
     mockFetch.mockReset();
-    process.env.GEMINI_API_KEY = "test-gemini-key";
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = "test-gemini-key";
     process.env.LAW_GO_KR_API_KEY = "test-law-key";
   });
 
@@ -67,8 +67,8 @@ describe("POST /api/analyze", () => {
     expect(typeof json.interpretation).toBe("string");
   });
 
-  it("returns 500 without GEMINI_API_KEY", async () => {
-    delete process.env.GEMINI_API_KEY;
+  it("returns 500 without GOOGLE_GENERATIVE_AI_API_KEY", async () => {
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
     const { POST } = await import("@/app/api/analyze/route");
     const req = createRequest(validFormData);
@@ -76,7 +76,7 @@ describe("POST /api/analyze", () => {
     const json = await res.json();
 
     expect(res.status).toBe(500);
-    expect(json.error).toBe("GEMINI_API_KEY not configured");
+    expect(json.error).toBe("GOOGLE_GENERATIVE_AI_API_KEY not configured");
   });
 
   it("returns empty statutes when law.go.kr fails", async () => {
