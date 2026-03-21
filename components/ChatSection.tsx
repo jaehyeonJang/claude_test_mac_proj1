@@ -102,7 +102,14 @@ export function ChatSection() {
             variant="secondary"
             size="sm"
             className="w-full text-xs"
-            onClick={applyToReport}
+            onClick={async () => {
+              setChatError(null);
+              try {
+                await applyToReport();
+              } catch {
+                setChatError("보고서 반영 중 오류가 발생했습니다.");
+              }
+            }}
             disabled={isLoading}
           >
             보고서에 반영

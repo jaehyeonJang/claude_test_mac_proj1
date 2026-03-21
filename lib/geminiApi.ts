@@ -27,9 +27,21 @@ export async function analyzeWithGemini(
     ? `\n\n<추가질문>\n${sanitizeInput(chatMessage)}\n</추가질문>`
     : "";
 
-  const freeTextValue = formData.freeText
-    ? `\n<추가의뢰>\n${sanitizeInput(String(formData.freeText))}\n</추가의뢰>`
-    : "없음";
+  const freeTextSection = formData.freeText
+    ? `\n\n<추가의뢰>\n${sanitizeInput(String(formData.freeText))}\n</추가의뢰>`
+    : "";
+
+  // Optional deduction fields — only include when provided
+  const extraFields = [
+    formData.pensionSavings    && `- 연금저축/IRP 납입액: ${formData.pensionSavings}`,
+    formData.creditCard        && `- 신용카드 사용액: ${formData.creditCard}`,
+    formData.medicalExpense    && `- 의료비: ${formData.medicalExpense}`,
+    formData.children          && `- 자녀 수: ${formData.children}명`,
+    formData.housingSubscription && `- 주택청약 납입액: ${formData.housingSubscription}`,
+    formData.monthlyRent       && `- 월세 납입액: ${formData.monthlyRent}`,
+  ].filter(Boolean).join("\n");
+
+  const extraSection = extraFields ? `\n\n추가 공제 정보:\n${extraFields}` : "";
 
   const prompt = `당신은 한국 세법 전문가입니다. 아래 정보를 바탕으로 절세 방안을 분석해주세요.
 
@@ -40,8 +52,7 @@ export async function analyzeWithGemini(
 - 주택 보유: ${formData.house || "미입력"}
 - 금융소득: ${formData.financialIncome || "미입력"}
 - 연금/퇴직소득: ${formData.pension || "미입력"}
-- 기납부세액: ${formData.prepaidTax || "미입력"}
-- 자유 텍스트: ${freeTextValue}${lawNotice}${statuteSection}${chatSection}
+- 기납부세액: ${formData.prepaidTax || "미입력"}${extraSection}${freeTextSection}${lawNotice}${statuteSection}${chatSection}
 
 절세 방안을 구체적으로 분석하고, 적용 가능한 공제 항목과 예상 절감액을 제시해주세요.`;
 

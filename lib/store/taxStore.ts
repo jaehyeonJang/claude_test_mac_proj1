@@ -143,7 +143,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   restoreHistory: (item) => {
-    set({ form: item.form, report: item.report, chatHistory: [], submittedForm: item.form });
+    set({ form: item.form, report: item.report, chatHistory: [], submittedForm: item.form, error: null });
   },
 
   removeHistory: (id) => {
