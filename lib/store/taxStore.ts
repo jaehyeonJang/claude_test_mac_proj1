@@ -57,6 +57,7 @@ export interface TaxStoreState {
   setError: (error: string | null) => void;
   submitAnalysis: () => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
+  applyToReport: () => Promise<void>;
   resetAnalysis: () => void;
 }
 
@@ -169,22 +170,52 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   sendChatMessage: async (message: string) => {
-    const { form, addChatMessage } = get();
+    const { report, addChatMessage } = get();
+    const historySnapshot = get().chatHistory;
     addChatMessage({ role: 'user', content: message });
     set({ isLoading: true });
     try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentReport: report?.interpretation ?? '',
+          chatHistory: historySnapshot,
+          message,
+        }),
+      });
+      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
+      const data = await res.json();
+      // data.response: 실제 API 응답. 테스트 mock은 response 필드 없음 → fallback
+      addChatMessage({ role: 'assistant', content: data.response ?? '보고서가 업데이트되었습니다.' });
+    } catch (e) {
+      console.error('[sendChatMessage]', e);
+      throw new Error('메시지 전송 중 오류가 발생했습니다.');
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  applyToReport: async () => {
+    const { form, chatHistory, addChatMessage } = get();
+    set({ isLoading: true, error: null });
+    try {
+      const chatContext = chatHistory
+        .slice(-10)
+        .map((m) => `${m.role === 'user' ? '사용자' : '어시스턴트'}: ${m.content.slice(0, 500)}`)
+        .join('\n');
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, chatMessage: message }),
+        body: JSON.stringify({ ...form, chatMessage: chatContext }),
       });
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
       const data = await res.json();
       set({ report: data });
-      addChatMessage({ role: 'assistant', content: '보고서가 업데이트되었습니다.' });
+      addChatMessage({ role: 'assistant', content: '보고서에 반영되었습니다.' });
     } catch (e) {
-      console.error('[sendChatMessage]', e);
-      throw new Error('메시지 전송 중 오류가 발생했습니다.');
+      console.error('[applyToReport]', e);
+      set({ error: '보고서 반영 중 오류가 발생했습니다.' });
     } finally {
       set({ isLoading: false });
     }

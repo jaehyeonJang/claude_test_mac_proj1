@@ -12,6 +12,7 @@ export function ChatSection() {
   const isLoading = useTaxStore((s) => s.isLoading);
   const chatHistory = useTaxStore((s) => s.chatHistory);
   const sendChatMessage = useTaxStore((s) => s.sendChatMessage);
+  const applyToReport = useTaxStore((s) => s.applyToReport);
   const [input, setInput] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -73,7 +74,7 @@ export function ChatSection() {
       </div>
 
       {/* Input */}
-      <div className="border-t p-3">
+      <div className="border-t p-3 space-y-2">
         <div className="flex gap-2">
           <Input
             aria-label="채팅 메시지"
@@ -96,6 +97,17 @@ export function ChatSection() {
             {isLoading ? <Spinner /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
+        {chatHistory.some((m) => m.role === "user") && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full text-xs"
+            onClick={applyToReport}
+            disabled={isLoading}
+          >
+            보고서에 반영
+          </Button>
+        )}
         {chatError && (
           <p role="alert" className="text-xs text-destructive mt-1">
             {chatError}

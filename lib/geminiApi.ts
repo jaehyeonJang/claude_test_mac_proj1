@@ -47,3 +47,29 @@ export async function analyzeWithGemini(
 
   return result.text;
 }
+
+export async function chatWithGemini(
+  currentReport: string,
+  chatHistory: Array<{ role: string; content: string }>,
+  message: string
+): Promise<string> {
+  const historySection =
+    chatHistory.length > 0
+      ? `\n\n대화 내역:\n${chatHistory
+          .slice(-10)
+          .map((m) => `${m.role === "user" ? "사용자" : "어시스턴트"}: ${m.content.slice(0, 500)}`)
+          .join("\n")}`
+      : "";
+
+  const prompt = `당신은 한국 세법 전문가입니다. 아래 절세 분석 보고서를 바탕으로 사용자의 질문에 간결하고 명확하게 답변해주세요.${historySection}
+
+현재 보고서:
+${currentReport}
+
+사용자 질문: ${sanitizeInput(message)}
+
+보고서 내용을 참고하여 2-3문장으로 간결하게 답변해주세요.`;
+
+  const result = await generateText({ model, prompt });
+  return result.text;
+}
