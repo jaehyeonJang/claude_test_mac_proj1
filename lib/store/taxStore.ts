@@ -6,21 +6,38 @@ import type { Statute } from "@/lib/lawApi";
 const STORAGE_KEY = "taxStore:v1";
 
 export interface FormData {
+  // 소득 정보
   incomeType: string;
+  incomeType2?: string;        // 부가 소득 유형 (선택)
   annualIncome: string;
-  dependents: string;
-  house: string;
-  financialIncome: string;
-  pension: string;
   prepaidTax: string;
+  // 자산 현황
+  house: string;
+  financialIncome: string;     // 2000만원 기준
+  pension: string;
+  retirementIncome?: string;   // 퇴직소득 (별도)
+  // 부양가족 상세
+  childDependents?: string;    // 직계비속 20세 이하 (label: 부양가족)
+  spouseDependents?: string;   // 배우자 공제
+  elderDependents60?: string;  // 직계존속 60세 이상
+  elderDependents70?: string;  // 직계존속 70세 이상 (경로우대)
+  // 자유텍스트
   freeText: string;
-  // Additional deduction fields (optional — hidden in collapsible section)
-  pensionSavings?: string;
+  // 추가 공제 항목 (optional)
+  pensionSavingsAmount?: string; // 연금저축 (최대 600만원)
+  irpAmount?: string;            // IRP (합산 900만원 한도)
   creditCard?: string;
   medicalExpense?: string;
-  children?: string;
+  educationExpense?: string;
+  insurancePremium?: string;
+  donation?: string;
   housingSubscription?: string;
   monthlyRent?: string;
+  smbEmployeeReduction?: string;
+  // 하위호환 (spec 테스트 setState 호환)
+  dependents?: string;
+  pensionSavings?: string;
+  children?: string;
 }
 
 export type { Statute };
@@ -74,19 +91,28 @@ export interface TaxStoreState {
 
 const defaultForm: FormData = {
   incomeType: "",
+  incomeType2: "",
   annualIncome: "",
-  dependents: "",
+  prepaidTax: "",
   house: "",
   financialIncome: "",
   pension: "",
-  prepaidTax: "",
+  retirementIncome: "",
+  childDependents: "",
+  spouseDependents: "",
+  elderDependents60: "",
+  elderDependents70: "",
   freeText: "",
-  pensionSavings: "",
+  pensionSavingsAmount: "",
+  irpAmount: "",
   creditCard: "",
   medicalExpense: "",
-  children: "",
+  educationExpense: "",
+  insurancePremium: "",
+  donation: "",
   housingSubscription: "",
   monthlyRent: "",
+  smbEmployeeReduction: "",
 };
 
 export function loadHistory(): HistoryItem[] {

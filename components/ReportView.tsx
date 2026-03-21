@@ -126,19 +126,31 @@ function renderMarkdown(text: string): React.ReactNode {
 // ---------------------------------------------------------------------------
 
 const FIELD_META: { key: keyof FormData; label: string }[] = [
-  { key: "incomeType",        label: "소득 유형" },
-  { key: "annualIncome",      label: "연간 소득" },
-  { key: "dependents",        label: "부양가족" },
-  { key: "house",             label: "주택" },
-  { key: "financialIncome",   label: "금융소득" },
-  { key: "pension",           label: "연금/퇴직" },
-  { key: "prepaidTax",        label: "기납부세액" },
-  { key: "pensionSavings",    label: "연금저축/IRP" },
-  { key: "creditCard",        label: "신용카드" },
-  { key: "medicalExpense",    label: "의료비" },
-  { key: "children",          label: "자녀" },
-  { key: "housingSubscription", label: "주택청약" },
-  { key: "monthlyRent",       label: "월세" },
+  { key: "incomeType",            label: "소득 유형" },
+  { key: "incomeType2",           label: "부가 소득" },
+  { key: "annualIncome",          label: "연간 소득" },
+  { key: "prepaidTax",            label: "기납부세액" },
+  { key: "house",                 label: "주택" },
+  { key: "financialIncome",       label: "금융소득" },
+  { key: "pension",               label: "연금소득" },
+  { key: "retirementIncome",      label: "퇴직소득" },
+  { key: "childDependents",       label: "직계비속" },
+  { key: "spouseDependents",      label: "배우자" },
+  { key: "elderDependents60",     label: "직계존속60↑" },
+  { key: "elderDependents70",     label: "경로우대" },
+  { key: "pensionSavingsAmount",  label: "연금저축" },
+  { key: "irpAmount",             label: "IRP" },
+  { key: "creditCard",            label: "신용카드" },
+  { key: "medicalExpense",        label: "의료비" },
+  { key: "educationExpense",      label: "교육비" },
+  { key: "insurancePremium",      label: "보장보험" },
+  { key: "donation",              label: "기부금" },
+  { key: "housingSubscription",   label: "주택청약" },
+  { key: "monthlyRent",           label: "월세" },
+  { key: "smbEmployeeReduction",  label: "중소기업감면" },
+  // 하위호환
+  { key: "dependents",            label: "부양가족" },
+  { key: "pensionSavings",        label: "연금저축/IRP" },
 ];
 
 // Split text into per-character spans so RTL getByText cannot find keywords
@@ -318,6 +330,9 @@ export function ReportView() {
 
         <TabsContent value="interpretation">
           {renderMarkdown(report.interpretation)}
+          <div className="mt-5 pt-3 border-t text-[11px] text-muted-foreground leading-relaxed">
+            ※ 본 분석은 AI가 생성한 참고 자료이며 법적 효력이 없습니다. 세법은 매년 개정되므로 최신 규정과 다를 수 있습니다. 정확한 세액 계산·신고 및 절세 전략은 반드시 세무사 등 전문가와 상담하시기 바랍니다.
+          </div>
         </TabsContent>
         <TabsContent value="statutes">
           {report.statutes.length === 0 || report.statutesAvailable === false ? (
