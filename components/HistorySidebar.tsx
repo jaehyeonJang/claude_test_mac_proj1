@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clock, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useTaxStore, loadHistory } from "@/lib/store/taxStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ const DEFAULT_WIDTH = 240;
 export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySidebarProps) {
   const history = useTaxStore((s) => s.history);
   const restoreHistory = useTaxStore((s) => s.restoreHistory);
+  const removeHistory = useTaxStore((s) => s.removeHistory);
 
   const [isOpen, setIsOpen] = useState(true);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -148,14 +149,26 @@ export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySideb
                         onRestoreHistory?.();
                       }
                     }}
-                    className="cursor-pointer rounded-md p-2 hover:bg-accent"
+                    className="group/item cursor-pointer rounded-md p-2 hover:bg-accent flex items-center gap-1"
                   >
-                    <span className="block text-xs font-medium truncate">
-                      {item.form.incomeType || "자유 텍스트"}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {formatTimestamp(item.timestamp)}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-xs font-medium truncate">
+                        {item.form.incomeType || "자유 텍스트"}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {formatTimestamp(item.timestamp)}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeHistory(item.id);
+                      }}
+                      aria-label="히스토리 삭제"
+                      className="opacity-0 group-hover/item:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
                   </li>
                 ))}
               </ul>

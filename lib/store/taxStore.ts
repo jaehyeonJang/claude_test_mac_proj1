@@ -52,6 +52,7 @@ export interface TaxStoreState {
   addHistory: (item: Omit<HistoryItem, "id">) => void;
   initHistory: (items: HistoryItem[]) => void;
   restoreHistory: (item: HistoryItem) => void;
+  removeHistory: (id: string) => void;
   setDarkMode: (darkMode: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
@@ -125,6 +126,12 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
 
   restoreHistory: (item) => {
     set({ form: item.form, report: item.report, chatHistory: [] });
+  },
+
+  removeHistory: (id) => {
+    const next = get().history.filter((item) => item.id !== id);
+    set({ history: next });
+    saveHistory(next);
   },
 
   setDarkMode: (darkMode) => {
