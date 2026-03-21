@@ -186,25 +186,45 @@ function FormSummary({ form }: { form: FormData }) {
 // Step status (after analysis)
 // ---------------------------------------------------------------------------
 
-function StepStatus({ statutesAvailable }: { statutesAvailable?: boolean }) {
-  const lawOk = statutesAvailable !== false;
+function StepStatus({
+  statutesAvailable,
+  statutesSkipped,
+}: {
+  statutesAvailable?: boolean;
+  statutesSkipped?: boolean;
+}) {
+  const lawStatus = statutesSkipped
+    ? "skipped"
+    : statutesAvailable
+      ? "success"
+      : "failed";
+
   return (
-    <div className="flex items-center gap-3 text-xs mb-3">
-      <span className={`flex items-center gap-1 ${lawOk ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>
-        {lawOk
-          ? <CheckCircle2 className="h-3.5 w-3.5" />
-          : <XCircle className="h-3.5 w-3.5" />
-        }
-        {lawOk ? "법령 조회 완료" : "법령 조회 실패"}
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mb-3">
+      <span
+        className={`flex items-center gap-1 ${
+          lawStatus === "success"
+            ? "text-green-600 dark:text-green-400"
+            : lawStatus === "failed"
+              ? "text-destructive"
+              : "text-muted-foreground"
+        }`}
+      >
+        {lawStatus === "success" && <CheckCircle2 className="h-3.5 w-3.5" />}
+        {lawStatus === "failed"  && <XCircle      className="h-3.5 w-3.5" />}
+        {lawStatus === "skipped" && <Circle       className="h-3.5 w-3.5" />}
+        {lawStatus === "success" && "법령 조회 완료"}
+        {lawStatus === "failed"  && "법령 조회 실패"}
+        {lawStatus === "skipped" && "법령 조회 건너뜀 (API 미설정)"}
       </span>
       <span className="text-muted-foreground">·</span>
       <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
         <CheckCircle2 className="h-3.5 w-3.5" />
         AI 분석 완료
       </span>
-      {!lawOk && (
-        <span className="text-amber-600 dark:text-amber-400 text-[11px]">
-          — 법령 데이터 없이 AI 결과만 제공됩니다
+      {lawStatus === "failed" && (
+        <span className="text-destructive/80 text-[11px] w-full">
+          법령 데이터 없이 AI 분석 결과만 제공됩니다
         </span>
       )}
     </div>
@@ -297,7 +317,10 @@ export function ReportView() {
       {submittedForm && <FormSummary form={submittedForm} />}
 
       {/* Step status */}
-      <StepStatus statutesAvailable={report.statutesAvailable} />
+      <StepStatus
+        statutesAvailable={report.statutesAvailable}
+        statutesSkipped={report.statutesSkipped}
+      />
 
       {/* Tabs + copy */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

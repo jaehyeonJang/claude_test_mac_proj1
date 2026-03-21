@@ -29,6 +29,7 @@ export interface ReportData {
   statutes: Statute[];
   interpretation: string;
   statutesAvailable?: boolean;
+  statutesSkipped?: boolean; // true when LAW_GO_KR_API_KEY is not configured
 }
 
 export interface ChatMessage {

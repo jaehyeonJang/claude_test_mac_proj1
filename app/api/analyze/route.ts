@@ -15,20 +15,28 @@ export async function POST(request: Request) {
 
   const query = buildSearchQuery(formData);
 
+  const hasLawApiKey = !!process.env.LAW_GO_KR_API_KEY;
   let statutes: Awaited<ReturnType<typeof searchStatutes>> = [];
   let statutesAvailable = false;
 
-  try {
-    statutes = await searchStatutes(query);
-    statutesAvailable = statutes.length > 0;
-  } catch {
-    statutes = [];
-    statutesAvailable = false;
+  if (hasLawApiKey) {
+    try {
+      statutes = await searchStatutes(query);
+      statutesAvailable = statutes.length > 0;
+    } catch {
+      statutes = [];
+      statutesAvailable = false;
+    }
   }
 
   try {
     const interpretation = await analyzeWithGemini(formData, statutes, chatMessage);
-    return NextResponse.json({ statutes, interpretation, statutesAvailable });
+    return NextResponse.json({
+      statutes,
+      interpretation,
+      statutesAvailable,
+      statutesSkipped: !hasLawApiKey,
+    });
   } catch (e) {
     console.error("[/api/analyze] analyzeWithGemini 오류:", e);
     return NextResponse.json(

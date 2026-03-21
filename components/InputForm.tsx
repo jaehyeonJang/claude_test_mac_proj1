@@ -26,17 +26,31 @@ export function InputForm() {
   const submitAnalysis = useTaxStore((s) => s.submitAnalysis);
   const analysisStep = useTaxStore((s) => s.analysisStep);
 
-  const [incomeUnit, setIncomeUnit] = useState("만원");
+  // Local state for split income input (amount + unit combined into form.annualIncome)
+  const [incomeAmount, setIncomeAmount] = useState<string>(() => {
+    const val = form.annualIncome;
+    if (val.endsWith("억원")) return val.slice(0, -2);
+    if (val.endsWith("만원")) return val.slice(0, -2);
+    return val;
+  });
+  const [incomeUnit, setIncomeUnit] = useState<"만원" | "억원">(() =>
+    form.annualIncome.endsWith("억원") ? "억원" : "만원"
+  );
   const [showExtra, setShowExtra] = useState(false);
 
   // !!v handles both "" and undefined (spec tests reset with only 8 original fields)
   const hasAnyValue = Object.values(form).some((v) => !!v);
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setIncomeAmount(val);
+    setForm({ annualIncome: val ? val + incomeUnit : "" });
+  };
+
   const handleUnitChange = (unit: string) => {
-    setIncomeUnit(unit);
-    const stripped = form.annualIncome.replace(/만원$|억원$/, "").trim();
-    if (stripped) {
-      setForm({ annualIncome: stripped + unit });
+    setIncomeUnit(unit as "만원" | "억원");
+    if (incomeAmount) {
+      setForm({ annualIncome: incomeAmount + unit });
     }
   };
 
@@ -84,8 +98,8 @@ export function InputForm() {
             <div className="flex gap-1">
               <Input
                 id="annualIncome"
-                value={form.annualIncome}
-                onChange={(e) => setForm({ annualIncome: e.target.value })}
+                value={incomeAmount}
+                onChange={handleAmountChange}
                 disabled={isLoading}
                 placeholder="5000"
                 className="flex-1 min-w-0"
