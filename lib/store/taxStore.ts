@@ -52,6 +52,7 @@ export interface TaxStoreState {
   darkMode: boolean;
   isLoading: boolean;
   analysisStep: 'law' | 'ai' | null;
+  submittedForm: FormData | null;
   error: string | null;
   setForm: (form: Partial<FormData>) => void;
   setReport: (report: ReportData | null) => void;
@@ -113,6 +114,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   darkMode: false,
   isLoading: false,
   analysisStep: null,
+  submittedForm: null,
   error: null,
 
   setForm: (partial) =>
@@ -140,7 +142,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   restoreHistory: (item) => {
-    set({ form: item.form, report: item.report, chatHistory: [] });
+    set({ form: item.form, report: item.report, chatHistory: [], submittedForm: item.form });
   },
 
   removeHistory: (id) => {
@@ -166,8 +168,9 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   setError: (error) => set({ error }),
 
   submitAnalysis: async () => {
-    const { form, addHistory } = get();
-    set({ isLoading: true, error: null, analysisStep: 'law' });
+    const { form } = get();
+    const formSnapshot = { ...form };
+    set({ isLoading: true, error: null, analysisStep: 'law', submittedForm: null });
 
     const stepTimer = setTimeout(() => {
       if (get().isLoading) set({ analysisStep: 'ai' });
@@ -181,8 +184,8 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
       });
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
       const data = await res.json();
-      set({ report: data });
-      get().addHistory({ timestamp: Date.now(), form, report: data });
+      set({ report: data, submittedForm: formSnapshot });
+      get().addHistory({ timestamp: Date.now(), form: formSnapshot, report: data });
       set({ form: defaultForm });
     } catch (e) {
       console.error('[submitAnalysis]', e);
@@ -194,7 +197,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   resetAnalysis: () => {
-    set({ report: null, chatHistory: [], error: null, form: defaultForm, analysisStep: null });
+    set({ report: null, chatHistory: [], error: null, form: defaultForm, analysisStep: null, submittedForm: null });
   },
 
   sendChatMessage: async (message: string) => {
