@@ -57,6 +57,7 @@ export interface TaxStoreState {
   setError: (error: string | null) => void;
   submitAnalysis: () => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
+  resetAnalysis: () => void;
 }
 
 const defaultForm: FormData = {
@@ -92,7 +93,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   form: defaultForm,
   report: null,
   chatHistory: [],
-  history: typeof window !== "undefined" ? loadHistory() : [],
+  history: [],
   darkMode: false,
   isLoading: false,
   error: null,
@@ -122,22 +123,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   restoreHistory: (item) => {
-    const { form, report } = get();
-
-    if (report) {
-      const autoSaveItem: HistoryItem = {
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        form,
-        report,
-      };
-      const currentHistory = get().history;
-      const next = [autoSaveItem, ...currentHistory].slice(0, 50);
-      saveHistory(next);
-      set({ history: next, form: item.form, report: item.report, chatHistory: [] });
-    } else {
-      set({ form: item.form, report: item.report, chatHistory: [] });
-    }
+    set({ form: item.form, report: item.report, chatHistory: [] });
   },
 
   setDarkMode: (darkMode) => {
@@ -176,6 +162,10 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  resetAnalysis: () => {
+    set({ report: null, chatHistory: [], error: null, form: defaultForm });
   },
 
   sendChatMessage: async (message: string) => {

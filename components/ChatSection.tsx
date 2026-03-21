@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTaxStore } from "@/lib/store/taxStore";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { Send } from "lucide-react";
+import { Send, MessageCircle } from "lucide-react";
 
 export function ChatSection() {
   const report = useTaxStore((s) => s.report);
@@ -14,6 +14,11 @@ export function ChatSection() {
   const sendChatMessage = useTaxStore((s) => s.sendChatMessage);
   const [input, setInput] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory]);
 
   if (!report) return null;
 
@@ -24,46 +29,79 @@ export function ChatSection() {
     setChatError(null);
     try {
       await sendChatMessage(message);
-    } catch (e) {
+    } catch {
       setChatError("메시지 전송 중 오류가 발생했습니다.");
     }
   }
 
   return (
-    <section aria-label="채팅">
-      <div role="log" aria-live="polite" className="flex flex-col gap-2">
-        {chatHistory.map((msg) => (
-          <article
-            key={msg.id}
-            className={msg.role === "user"
-              ? "self-end rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[80%]"
-              : "self-start rounded-lg bg-muted px-3 py-2 text-sm max-w-[80%]"
-            }
+    <section aria-label="채팅" className="border rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center gap-2">
+        <MessageCircle className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <h3 className="text-sm font-semibold">추가 논의</h3>
+          <p className="text-xs text-muted-foreground">분석 결과에 대해 더 질문하세요</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="h-56 overflow-y-auto p-3">
+        <div role="log" aria-live="polite" className="flex flex-col gap-2 h-full">
+          {chatHistory.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm text-muted-foreground">
+                분석 결과에 대해 궁금한 점을 질문해보세요
+              </p>
+            </div>
+          ) : (
+            chatHistory.map((msg) => (
+              <article
+                key={msg.id}
+                className={
+                  msg.role === "user"
+                    ? "self-end rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm max-w-[80%]"
+                    : "self-start rounded-2xl rounded-tl-sm bg-muted px-3 py-2 text-sm max-w-[80%]"
+                }
+              >
+                <p>{msg.content}</p>
+              </article>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input */}
+      <div className="border-t p-3">
+        <div className="flex gap-2">
+          <Input
+            aria-label="채팅 메시지"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={isLoading}
+            placeholder="분석 결과에 대해 추가로 질문하세요..."
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+          <Button
+            onClick={handleSend}
+            disabled={isLoading || !input.trim()}
+            aria-label="전송"
           >
-            <p>{msg.content}</p>
-          </article>
-        ))}
+            {isLoading ? <Spinner /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+        {chatError && (
+          <p role="alert" className="text-xs text-destructive mt-1">
+            {chatError}
+          </p>
+        )}
       </div>
-      <div className="flex gap-2 mt-2">
-        <Input
-          aria-label="채팅 메시지"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={isLoading}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-        />
-        <Button onClick={handleSend} disabled={isLoading || !input.trim()} aria-label="전송">
-          {isLoading ? <Spinner /> : <Send className="h-4 w-4" />}
-        </Button>
-      </div>
-      {chatError && (
-        <p role="alert" className="text-xs text-destructive">{chatError}</p>
-      )}
     </section>
   );
 }

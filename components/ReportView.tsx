@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useTaxStore } from "@/lib/store/taxStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +22,87 @@ function renderInterpretation(text: string) {
     }
     return part;
   });
+}
+
+// Renders inline markdown (**bold**) while preserving the renderInterpretation constraint.
+function renderInline(text: string, key: number): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  if (parts.length === 1) {
+    return <span key={key}>{renderInterpretation(text)}</span>;
+  }
+  return (
+    <span key={key}>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={i}>{renderInterpretation(part.slice(2, -2))}</strong>;
+        }
+        return renderInterpretation(part);
+      })}
+    </span>
+  );
+}
+
+// Renders block-level markdown (headers, bullets, paragraphs).
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let bulletItems: string[] = [];
+  let keyCounter = 0;
+
+  const flushBullets = () => {
+    if (bulletItems.length === 0) return;
+    elements.push(
+      <ul key={`ul-${keyCounter++}`} className="list-disc pl-5 my-2 space-y-0.5">
+        {bulletItems.map((item, j) => (
+          <li key={j} className="text-sm leading-relaxed">
+            {renderInline(item, j)}
+          </li>
+        ))}
+      </ul>
+    );
+    bulletItems = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushBullets();
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      flushBullets();
+      elements.push(
+        <h3 key={keyCounter++} className="font-semibold text-sm mt-3 mb-1">
+          {renderInline(trimmed.slice(4), 0)}
+        </h3>
+      );
+    } else if (trimmed.startsWith("## ")) {
+      flushBullets();
+      elements.push(
+        <h2 key={keyCounter++} className="font-semibold text-base mt-4 mb-1 border-b pb-1">
+          {renderInline(trimmed.slice(3), 0)}
+        </h2>
+      );
+    } else if (trimmed.startsWith("# ")) {
+      flushBullets();
+      elements.push(
+        <h1 key={keyCounter++} className="font-bold text-lg mt-4 mb-2">
+          {renderInline(trimmed.slice(2), 0)}
+        </h1>
+      );
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      bulletItems.push(trimmed.slice(2));
+    } else {
+      flushBullets();
+      elements.push(
+        <p key={keyCounter++} className="text-sm leading-relaxed my-1">
+          {renderInline(trimmed, 0)}
+        </p>
+      );
+    }
+  }
+  flushBullets();
+  return <div className="space-y-0.5">{elements}</div>;
 }
 
 export function ReportView() {
@@ -54,7 +135,7 @@ export function ReportView() {
         <TabsTrigger value="statutes">조문 보기</TabsTrigger>
       </TabsList>
       <TabsContent value="interpretation">
-        <p>{renderInterpretation(report.interpretation)}</p>
+        {renderMarkdown(report.interpretation)}
       </TabsContent>
       <TabsContent value="statutes">
         {report.statutes.length === 0 || report.statutesAvailable === false ? (
