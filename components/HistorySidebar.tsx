@@ -167,9 +167,9 @@ export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySideb
                         onRestoreHistory?.();
                       }
                     }}
-                    className="group/item cursor-pointer rounded-md p-2 hover:bg-accent flex items-center gap-1"
+                    className="group/item relative cursor-pointer rounded-md p-2 hover:bg-accent"
                   >
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 pr-6">
                       <span className="block text-xs font-medium truncate">
                         {(item.form.incomeTypes && item.form.incomeTypes.length > 0)
                           ? item.form.incomeTypes.join(", ")
@@ -190,7 +190,7 @@ export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySideb
                         removeHistory(item.id);
                       }}
                       aria-label="히스토리 삭제"
-                      className="opacity-0 group-hover/item:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="size-3" />
                     </button>
