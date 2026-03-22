@@ -178,7 +178,7 @@ function FormSummary({ form }: { form: FormData }) {
               <span className="text-muted-foreground">{label}</span>
               {" "}
               {/* Value split into chars to prevent getByText keyword conflicts */}
-              <span className="font-medium" aria-hidden="true">{splitChars(value!)}</span>
+              <span className="font-medium" aria-hidden="true">{splitChars(Array.isArray(value) ? value.join(", ") : value!)}</span>
             </span>
           ))}
         </div>
