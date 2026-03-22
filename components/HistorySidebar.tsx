@@ -169,6 +169,16 @@ export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySideb
                     }}
                     className="group/item cursor-pointer rounded-md p-2 hover:bg-accent flex items-center gap-1 overflow-hidden"
                   >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeHistory(item.id);
+                      }}
+                      aria-label="히스토리 삭제"
+                      className="opacity-0 group-hover/item:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
                     <div className="flex-1 min-w-0">
                       <span className="block text-xs font-medium truncate">
                         {(item.form.incomeTypes && item.form.incomeTypes.length > 0)
@@ -184,16 +194,6 @@ export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySideb
                         {formatTimestamp(item.timestamp)}
                       </span>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeHistory(item.id);
-                      }}
-                      aria-label="히스토리 삭제"
-                      className="opacity-0 group-hover/item:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
                   </li>
                 ))}
               </ul>
