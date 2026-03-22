@@ -6,16 +6,17 @@ import type { Statute } from "@/lib/lawApi";
 const STORAGE_KEY = "taxStore:v1";
 
 export interface FormData {
-  // 소득 정보
-  incomeType: string;
-  incomeType2?: string;        // 부가 소득 유형 (선택)
+  // 소득 유형 (다중 선택)
+  incomeTypes?: string[];      // 선택된 소득 유형 목록 (신규)
+  incomeType: string;          // 하위호환용 (spec 테스트 setState 호환)
+  incomeType2?: string;        // 하위호환용
   annualIncome: string;
   prepaidTax: string;
   // 자산 현황
   house: string;
   financialIncome: string;     // 2000만원 기준
   pension: string;
-  retirementIncome?: string;   // 퇴직소득 (별도)
+  retirementIncome?: string;   // 하위호환용
   // 부양가족 상세
   childDependents?: string;    // 직계비속 20세 이하 (label: 부양가족)
   spouseDependents?: string;   // 배우자 공제
@@ -34,6 +35,30 @@ export interface FormData {
   housingSubscription?: string;
   monthlyRent?: string;
   smbEmployeeReduction?: string;
+  // 양도소득 전용 필드
+  capitalGainAssetType?: string;       // 자산 종류 (부동산/주식·펀드/기타)
+  capitalGainAcquisitionDate?: string; // 취득일
+  capitalGainTransferDate?: string;    // 양도일
+  capitalGainAcquisitionPrice?: string;// 취득가액
+  capitalGainTransferPrice?: string;   // 양도가액
+  capitalGainExpenses?: string;        // 필요경비
+  capitalGainAdjustedZone?: string;    // 조정대상지역 여부
+  // 퇴직소득 전용 필드
+  retirementAmount?: string;           // 퇴직급여 총액
+  retirementYearsOfService?: string;   // 근속연수
+  retirementIsExecutive?: string;      // 임원 여부
+  retirementIrpRollover?: string;      // IRP 이연 수령
+  retirementHasInterimSettlement?: string; // 중간정산 이력
+  // 사업소득 전용 필드
+  businessIndustry?: string;           // 업종
+  businessExpenseRateType?: string;    // 경비율 유형
+  businessRevenue?: string;            // 매출액
+  businessPurchaseExpense?: string;    // 매입비용
+  businessRentExpense?: string;        // 임차료
+  businessLaborExpense?: string;       // 인건비
+  // 기타소득 전용 필드
+  otherIncomeCategory?: string;        // 소득 종류
+  otherIncomeTaxType?: string;         // 과세 방식
   // 하위호환 (spec 테스트 setState 호환)
   dependents?: string;
   pensionSavings?: string;
@@ -90,14 +115,13 @@ export interface TaxStoreState {
 }
 
 const defaultForm: FormData = {
+  incomeTypes: [],
   incomeType: "",
-  incomeType2: "",
   annualIncome: "",
   prepaidTax: "",
   house: "",
   financialIncome: "",
   pension: "",
-  retirementIncome: "",
   childDependents: "",
   spouseDependents: "",
   elderDependents60: "",

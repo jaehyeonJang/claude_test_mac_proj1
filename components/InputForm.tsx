@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // MoneyInput: 숫자 + 단위(만원/억원) 분리 입력, 결합값을 onValueChange로 전달
@@ -79,7 +79,7 @@ function MoneyInput({
 }
 
 // ---------------------------------------------------------------------------
-// 소득 유형별 연간 소득 기준 안내 문구
+// 소득 유형별 연간 소득 힌트
 // ---------------------------------------------------------------------------
 const INCOME_HINT: Record<string, string> = {
   "근로소득": "총급여액 기준 (세전 연봉, 비과세 제외)",
@@ -88,6 +88,8 @@ const INCOME_HINT: Record<string, string> = {
   "양도소득": "양도차익 기준 (양도가 - 취득가 - 필요경비)",
   "퇴직소득": "퇴직급여액 기준 (세전 수령액)",
 };
+
+const ALL_INCOME_TYPES = ["근로소득", "사업소득", "기타소득", "양도소득", "퇴직소득"];
 
 // ---------------------------------------------------------------------------
 // InputForm
@@ -102,15 +104,51 @@ export function InputForm() {
   const analysisStep = useTaxStore((s) => s.analysisStep);
 
   const [showExtra, setShowExtra] = useState(false);
+  // Select 리셋용 key (소득 유형 추가 후 placeholder로 복귀)
+  const [selectKey, setSelectKey] = useState(0);
 
-  const hasAnyValue = Object.values(form).some((v) => !!v);
+  const incomeTypes = form.incomeTypes ?? [];
+
+  const handleAddIncomeType = (type: string) => {
+    if (!incomeTypes.includes(type)) {
+      setForm({ incomeTypes: [...incomeTypes, type] });
+    }
+    setSelectKey((k) => k + 1);
+  };
+
+  const handleRemoveIncomeType = (type: string) => {
+    setForm({ incomeTypes: incomeTypes.filter((t) => t !== type) });
+  };
+
+  const hasAnyValue = Object.values(form).some((v) =>
+    Array.isArray(v) ? v.length > 0 : !!v
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await submitAnalysis();
   };
 
-  const incomeHint = form.incomeType ? INCOME_HINT[form.incomeType] : null;
+  // 연간 소득 힌트: 단일 선택이면 해당 힌트, 복수면 일반 안내
+  const incomeHint =
+    incomeTypes.length === 1
+      ? INCOME_HINT[incomeTypes[0]]
+      : incomeTypes.length > 1
+      ? "복수 소득 — 주 소득 합계 기준"
+      : null;
+
+  // 남은 소득 유형 선택지 (이미 선택된 것 제외)
+  const remainingTypes = ALL_INCOME_TYPES.filter((t) => !incomeTypes.includes(t));
+
+  const has사업소득 = incomeTypes.includes("사업소득");
+  const has양도소득 = incomeTypes.includes("양도소득");
+  const has퇴직소득 = incomeTypes.includes("퇴직소득");
+  const has기타소득 = incomeTypes.includes("기타소득");
+
+  // 기준경비율·복식부기일 때 주요 경비 필드 표시
+  const showBusinessExpenseFields =
+    form.businessExpenseRateType === "기준경비율" ||
+    form.businessExpenseRateType === "복식부기";
 
   return (
     <form onSubmit={handleSubmit} className={isLoading ? "opacity-50 pointer-events-none" : ""}>
@@ -129,60 +167,57 @@ export function InputForm() {
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">소득 정보</p>
           <div className="grid grid-cols-2 gap-x-3 gap-y-3">
 
-            <Field>
+            {/* 소득 유형 다중 선택 */}
+            <Field className="col-span-2">
               <FieldLabel htmlFor="incomeType">소득 유형</FieldLabel>
-              <Select
-                value={form.incomeType}
-                onValueChange={(v) => setForm({ incomeType: v })}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="incomeType">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="근로소득">근로소득</SelectItem>
-                    <SelectItem value="사업소득">사업소득</SelectItem>
-                    <SelectItem value="기타소득">기타소득</SelectItem>
-                    <SelectItem value="양도소득">양도소득</SelectItem>
-                    <SelectItem value="퇴직소득">퇴직소득</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              {form.incomeType && (
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {{
-                    "근로소득": "직장인 급여소득",
-                    "사업소득": "자영업·프리랜서",
-                    "기타소득": "강의료·원고료·일시적 소득",
-                    "양도소득": "부동산·주식 매도차익",
-                    "퇴직소득": "퇴직금·퇴직연금 수령액",
-                  }[form.incomeType]}
-                </p>
-              )}
-            </Field>
 
-            <Field>
-              <FieldLabel htmlFor="incomeType2">부가 소득 <span className="text-muted-foreground font-normal">(선택)</span></FieldLabel>
-              <Select
-                value={form.incomeType2 ?? ""}
-                onValueChange={(v) => setForm({ incomeType2: v })}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="incomeType2">
-                  <SelectValue placeholder="없음" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="없음">없음</SelectItem>
-                    <SelectItem value="근로소득">근로소득</SelectItem>
-                    <SelectItem value="사업소득">사업소득</SelectItem>
-                    <SelectItem value="기타소득">기타소득</SelectItem>
-                    <SelectItem value="양도소득">양도소득</SelectItem>
-                    <SelectItem value="퇴직소득">퇴직소득</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              {/* 선택된 소득 유형 칩 */}
+              {incomeTypes.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {incomeTypes.map((type) => (
+                    <span
+                      key={type}
+                      className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium"
+                    >
+                      {type}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveIncomeType(type)}
+                        disabled={isLoading}
+                        className="hover:text-destructive transition-colors"
+                        aria-label={`${type} 제거`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* 소득 유형 추가 Select (spec 테스트 호환: role="option") */}
+              {remainingTypes.length > 0 && (
+                <Select
+                  key={selectKey}
+                  onValueChange={handleAddIncomeType}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="incomeType">
+                    <SelectValue placeholder="소득 유형 추가 +" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {remainingTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+              {remainingTypes.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">모든 소득 유형이 선택되었습니다</p>
+              )}
             </Field>
 
             <Field className="col-span-2">
@@ -212,6 +247,355 @@ export function InputForm() {
             </Field>
           </div>
         </div>
+
+        {/* ── 사업소득 전용 필드 ── */}
+        {has사업소득 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">사업소득 상세</p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+
+              <Field>
+                <FieldLabel htmlFor="businessIndustry">업종</FieldLabel>
+                <Select
+                  value={form.businessIndustry ?? ""}
+                  onValueChange={(v) => setForm({ businessIndustry: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="businessIndustry">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="도소매업">도소매업</SelectItem>
+                      <SelectItem value="서비스업">서비스업</SelectItem>
+                      <SelectItem value="제조업">제조업</SelectItem>
+                      <SelectItem value="건설업">건설업</SelectItem>
+                      <SelectItem value="음식·숙박업">음식·숙박업</SelectItem>
+                      <SelectItem value="프리랜서·기타">프리랜서·기타</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="businessExpenseRateType">경비율 유형</FieldLabel>
+                <Select
+                  value={form.businessExpenseRateType ?? ""}
+                  onValueChange={(v) => setForm({ businessExpenseRateType: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="businessExpenseRateType">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="단순경비율">단순경비율</SelectItem>
+                      <SelectItem value="기준경비율">기준경비율</SelectItem>
+                      <SelectItem value="복식부기">복식부기 (장부)</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-0.5">수입 규모에 따라 강제 적용 기준 상이</p>
+              </Field>
+
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="businessRevenue">매출액 (수입금액)</FieldLabel>
+                <MoneyInput
+                  id="businessRevenue"
+                  value={form.businessRevenue ?? ""}
+                  onValueChange={(v) => setForm({ businessRevenue: v })}
+                  disabled={isLoading}
+                  placeholder="5000"
+                />
+              </Field>
+
+              {showBusinessExpenseFields && (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="businessPurchaseExpense">매입비용</FieldLabel>
+                    <MoneyInput
+                      id="businessPurchaseExpense"
+                      value={form.businessPurchaseExpense ?? ""}
+                      onValueChange={(v) => setForm({ businessPurchaseExpense: v })}
+                      disabled={isLoading}
+                      placeholder="0"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-0.5">상품·원재료 매입액</p>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="businessRentExpense">임차료</FieldLabel>
+                    <MoneyInput
+                      id="businessRentExpense"
+                      value={form.businessRentExpense ?? ""}
+                      onValueChange={(v) => setForm({ businessRentExpense: v })}
+                      disabled={isLoading}
+                      placeholder="0"
+                    />
+                  </Field>
+
+                  <Field className="col-span-2">
+                    <FieldLabel htmlFor="businessLaborExpense">인건비</FieldLabel>
+                    <MoneyInput
+                      id="businessLaborExpense"
+                      value={form.businessLaborExpense ?? ""}
+                      onValueChange={(v) => setForm({ businessLaborExpense: v })}
+                      disabled={isLoading}
+                      placeholder="0"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-0.5">직원 급여·일용직 포함</p>
+                  </Field>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── 양도소득 전용 필드 ── */}
+        {has양도소득 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">양도소득 상세</p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="capitalGainAssetType">자산 종류</FieldLabel>
+                <Select
+                  value={form.capitalGainAssetType ?? ""}
+                  onValueChange={(v) => setForm({ capitalGainAssetType: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="capitalGainAssetType">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="부동산">부동산 (토지·건물)</SelectItem>
+                      <SelectItem value="주식·펀드">주식·펀드</SelectItem>
+                      <SelectItem value="분양권·입주권">분양권·입주권</SelectItem>
+                      <SelectItem value="기타">기타</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="capitalGainAcquisitionDate">취득일</FieldLabel>
+                <Input
+                  id="capitalGainAcquisitionDate"
+                  type="date"
+                  value={form.capitalGainAcquisitionDate ?? ""}
+                  onChange={(e) => setForm({ capitalGainAcquisitionDate: e.target.value })}
+                  disabled={isLoading}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="capitalGainTransferDate">양도일</FieldLabel>
+                <Input
+                  id="capitalGainTransferDate"
+                  type="date"
+                  value={form.capitalGainTransferDate ?? ""}
+                  onChange={(e) => setForm({ capitalGainTransferDate: e.target.value })}
+                  disabled={isLoading}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="capitalGainAcquisitionPrice">취득가액</FieldLabel>
+                <MoneyInput
+                  id="capitalGainAcquisitionPrice"
+                  value={form.capitalGainAcquisitionPrice ?? ""}
+                  onValueChange={(v) => setForm({ capitalGainAcquisitionPrice: v })}
+                  disabled={isLoading}
+                  placeholder="3억"
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="capitalGainTransferPrice">양도가액</FieldLabel>
+                <MoneyInput
+                  id="capitalGainTransferPrice"
+                  value={form.capitalGainTransferPrice ?? ""}
+                  onValueChange={(v) => setForm({ capitalGainTransferPrice: v })}
+                  disabled={isLoading}
+                  placeholder="5억"
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="capitalGainExpenses">필요경비</FieldLabel>
+                <MoneyInput
+                  id="capitalGainExpenses"
+                  value={form.capitalGainExpenses ?? ""}
+                  onValueChange={(v) => setForm({ capitalGainExpenses: v })}
+                  disabled={isLoading}
+                  placeholder="500"
+                />
+                <p className="text-[11px] text-muted-foreground mt-0.5">중개수수료, 등기비, 수리비 등</p>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="capitalGainAdjustedZone">조정대상지역</FieldLabel>
+                <Select
+                  value={form.capitalGainAdjustedZone ?? ""}
+                  onValueChange={(v) => setForm({ capitalGainAdjustedZone: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="capitalGainAdjustedZone">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="예">예 (중과 대상)</SelectItem>
+                      <SelectItem value="아니오">아니오</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-0.5">다주택자 중과세율 적용 여부</p>
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {/* ── 퇴직소득 전용 필드 ── */}
+        {has퇴직소득 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">퇴직소득 상세</p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="retirementAmount">퇴직급여 총액</FieldLabel>
+                <MoneyInput
+                  id="retirementAmount"
+                  value={form.retirementAmount ?? ""}
+                  onValueChange={(v) => setForm({ retirementAmount: v })}
+                  disabled={isLoading}
+                  placeholder="5000"
+                />
+                <p className="text-[11px] text-muted-foreground mt-0.5">세전 수령액 기준</p>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="retirementYearsOfService">근속연수 (년)</FieldLabel>
+                <Input
+                  id="retirementYearsOfService"
+                  type="number"
+                  min="1"
+                  value={form.retirementYearsOfService ?? ""}
+                  onChange={(e) => setForm({ retirementYearsOfService: e.target.value })}
+                  disabled={isLoading}
+                  placeholder="10"
+                />
+                <p className="text-[11px] text-muted-foreground mt-0.5">근속연수공제 핵심 변수</p>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="retirementIsExecutive">임원 여부</FieldLabel>
+                <Select
+                  value={form.retirementIsExecutive ?? ""}
+                  onValueChange={(v) => setForm({ retirementIsExecutive: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="retirementIsExecutive">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="일반직원">일반직원</SelectItem>
+                      <SelectItem value="임원">임원 (퇴직금 한도 제한)</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="retirementIrpRollover">IRP 이연 수령</FieldLabel>
+                <Select
+                  value={form.retirementIrpRollover ?? ""}
+                  onValueChange={(v) => setForm({ retirementIrpRollover: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="retirementIrpRollover">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="즉시 수령">즉시 수령</SelectItem>
+                      <SelectItem value="IRP 이연">IRP 이연 (과세 이연)</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="retirementHasInterimSettlement">중간정산 이력</FieldLabel>
+                <Select
+                  value={form.retirementHasInterimSettlement ?? ""}
+                  onValueChange={(v) => setForm({ retirementHasInterimSettlement: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="retirementHasInterimSettlement">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="없음">없음</SelectItem>
+                      <SelectItem value="있음">있음 (이후 근속연수만 적용)</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {/* ── 기타소득 전용 필드 ── */}
+        {has기타소득 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">기타소득 상세</p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+
+              <Field>
+                <FieldLabel htmlFor="otherIncomeCategory">소득 종류</FieldLabel>
+                <Select
+                  value={form.otherIncomeCategory ?? ""}
+                  onValueChange={(v) => setForm({ otherIncomeCategory: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="otherIncomeCategory">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="강의료·원고료">강의료·원고료 (필요경비 60%)</SelectItem>
+                      <SelectItem value="복권·사례금">복권·사례금</SelectItem>
+                      <SelectItem value="기타">기타</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="otherIncomeTaxType">과세 방식</FieldLabel>
+                <Select
+                  value={form.otherIncomeTaxType ?? ""}
+                  onValueChange={(v) => setForm({ otherIncomeTaxType: v })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="otherIncomeTaxType">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="분리과세">분리과세 (300만원 이하)</SelectItem>
+                      <SelectItem value="종합과세">종합과세 (300만원 초과 또는 선택)</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </div>
+        )}
 
         {/* ── 자산·소득 현황 ── */}
         <div className="space-y-2">
@@ -276,25 +660,6 @@ export function InputForm() {
                 </SelectContent>
               </Select>
             </Field>
-
-            <Field>
-              <FieldLabel htmlFor="retirementIncome">퇴직소득</FieldLabel>
-              <Select
-                value={form.retirementIncome ?? ""}
-                onValueChange={(v) => setForm({ retirementIncome: v })}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="retirementIncome">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="없음">없음</SelectItem>
-                    <SelectItem value="있음">있음</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
           </div>
         </div>
 
@@ -304,7 +669,6 @@ export function InputForm() {
           <div className="grid grid-cols-2 gap-x-3 gap-y-3">
 
             <Field>
-              {/* label은 /부양가족/ 패턴 매칭 유지 (spec 테스트 호환) */}
               <FieldLabel htmlFor="childDependents">부양가족 (자녀·직계비속 20세↓)</FieldLabel>
               <Input
                 id="childDependents"

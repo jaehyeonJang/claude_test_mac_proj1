@@ -63,16 +63,63 @@ export async function analyzeWithGemini(
   const dependentsSection = dependentsFields ? `\n\n부양가족 상세:\n${dependentsFields}` : "";
   const extraSection = extraFields ? `\n\n추가 공제 정보:\n${extraFields}` : "";
 
+  // 소득 유형: incomeTypes 배열 우선, 없으면 하위호환 필드 사용
+  const incomeTypes: string[] = Array.isArray(formData.incomeTypes) && (formData.incomeTypes as string[]).length > 0
+    ? formData.incomeTypes as string[]
+    : [formData.incomeType, formData.incomeType2].filter((t): t is string => !!t && t !== "없음");
+
+  // 양도소득 전용 필드
+  const capitalGainFields = [
+    formData.capitalGainAssetType      && `- 자산 종류: ${formData.capitalGainAssetType}`,
+    formData.capitalGainAcquisitionDate && `- 취득일: ${formData.capitalGainAcquisitionDate}`,
+    formData.capitalGainTransferDate    && `- 양도일: ${formData.capitalGainTransferDate}`,
+    formData.capitalGainAcquisitionPrice && `- 취득가액: ${formData.capitalGainAcquisitionPrice}`,
+    formData.capitalGainTransferPrice   && `- 양도가액: ${formData.capitalGainTransferPrice}`,
+    formData.capitalGainExpenses        && `- 필요경비: ${formData.capitalGainExpenses}`,
+    formData.capitalGainAdjustedZone    && `- 조정대상지역: ${formData.capitalGainAdjustedZone}`,
+  ].filter(Boolean).join("\n");
+
+  // 퇴직소득 전용 필드
+  const retirementFields = [
+    formData.retirementAmount              && `- 퇴직급여 총액: ${formData.retirementAmount}`,
+    formData.retirementYearsOfService      && `- 근속연수: ${formData.retirementYearsOfService}년`,
+    formData.retirementIsExecutive         && `- 임원 여부: ${formData.retirementIsExecutive}`,
+    formData.retirementIrpRollover         && `- IRP 이연: ${formData.retirementIrpRollover}`,
+    formData.retirementHasInterimSettlement && `- 중간정산 이력: ${formData.retirementHasInterimSettlement}`,
+  ].filter(Boolean).join("\n");
+
+  // 사업소득 전용 필드
+  const businessFields = [
+    formData.businessIndustry         && `- 업종: ${formData.businessIndustry}`,
+    formData.businessExpenseRateType  && `- 경비율 유형: ${formData.businessExpenseRateType}`,
+    formData.businessRevenue          && `- 매출액: ${formData.businessRevenue}`,
+    formData.businessPurchaseExpense  && `- 매입비용: ${formData.businessPurchaseExpense}`,
+    formData.businessRentExpense      && `- 임차료: ${formData.businessRentExpense}`,
+    formData.businessLaborExpense     && `- 인건비: ${formData.businessLaborExpense}`,
+  ].filter(Boolean).join("\n");
+
+  // 기타소득 전용 필드
+  const otherIncomeFields = [
+    formData.otherIncomeCategory && `- 소득 종류: ${formData.otherIncomeCategory}`,
+    formData.otherIncomeTaxType  && `- 과세 방식: ${formData.otherIncomeTaxType}`,
+  ].filter(Boolean).join("\n");
+
+  const specializedSections = [
+    capitalGainFields && `\n양도소득 상세:\n${capitalGainFields}`,
+    retirementFields  && `\n퇴직소득 상세:\n${retirementFields}`,
+    businessFields    && `\n사업소득 상세:\n${businessFields}`,
+    otherIncomeFields && `\n기타소득 상세:\n${otherIncomeFields}`,
+  ].filter(Boolean).join("");
+
   const prompt = `당신은 한국 세법 전문가입니다. 아래 정보를 바탕으로 절세 방안을 분석해주세요.
 
 입력 정보:
-- 소득 유형(주): ${formData.incomeType || "미입력"}${formData.incomeType2 && formData.incomeType2 !== "없음" ? ` / 부가: ${formData.incomeType2}` : ""}
+- 소득 유형: ${incomeTypes.length > 0 ? incomeTypes.join(", ") : "미입력"}
 - 연간 소득: ${formData.annualIncome || "미입력"}
 - 주택 보유: ${formData.house || "미입력"}
 - 금융소득: ${formData.financialIncome || "미입력"}
 - 연금소득: ${formData.pension || "미입력"}
-- 퇴직소득: ${formData.retirementIncome || "미입력"}
-- 기납부세액: ${formData.prepaidTax || "미입력"}${dependentsSection}${extraSection}${freeTextSection}${lawNotice}${statuteSection}${chatSection}
+- 기납부세액: ${formData.prepaidTax || "미입력"}${dependentsSection}${extraSection}${specializedSections}${freeTextSection}${lawNotice}${statuteSection}${chatSection}
 
 절세 방안을 구체적으로 분석하고, 적용 가능한 공제 항목과 예상 절감 효과를 제시해주세요. 단, 정확한 세액은 개인 상황에 따라 다를 수 있으므로 범위로 제시해주세요.`;
 
