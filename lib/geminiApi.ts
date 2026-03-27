@@ -121,7 +121,9 @@ export async function analyzeWithGemini(
 - 연금소득: ${formData.pension || "미입력"}
 - 기납부세액: ${formData.prepaidTax || "미입력"}${dependentsSection}${extraSection}${specializedSections}${freeTextSection}${lawNotice}${statuteSection}${chatSection}
 
-절세 방안을 구체적으로 분석하고, 적용 가능한 공제 항목과 예상 절감 효과를 제시해주세요. 단, 정확한 세액은 개인 상황에 따라 다를 수 있으므로 범위로 제시해주세요.`;
+${formData.freeText
+    ? `<추가의뢰>에서 요청한 내용에 먼저 답변하고, 그 내용을 중심으로 핵심만 간결하게 분석해주세요. 전체 절세 항목을 나열하지 말고, 요청된 질문에 집중해서 답변해주세요.`
+    : `절세 방안을 구체적으로 분석하고, 적용 가능한 공제 항목과 예상 절감 효과를 제시해주세요. 단, 정확한 세액은 개인 상황에 따라 다를 수 있으므로 범위로 제시해주세요.`}`;
 
   const result = await generateText({
     model,
