@@ -224,13 +224,14 @@ function StepStatus({ statutesAvailable }: { statutesAvailable?: boolean }) {
 // Loading step indicator
 // ---------------------------------------------------------------------------
 
-function LoadingSteps({ analysisStep }: { analysisStep: 'law' | 'ai' | null }) {
+function LoadingSteps({ analysisStep }: { analysisStep: 'identify' | 'law' | 'ai' | null }) {
   const steps = [
-    { id: 'law' as const, label: '법령 조회', subLabel: '관련 세법 검색 중' },
-    { id: 'ai'  as const, label: 'AI 분석',  subLabel: '절세 방안 도출 중' },
+    { id: 'identify' as const, label: '법령 파악',  subLabel: '관련 법령 식별 중' },
+    { id: 'law'      as const, label: '법령 조회',  subLabel: '법령 원문 불러오는 중' },
+    { id: 'ai'       as const, label: 'AI 분석',    subLabel: '절세 방안 도출 중' },
   ];
 
-  const currentIdx = analysisStep === 'law' ? 0 : analysisStep === 'ai' ? 1 : -1;
+  const currentIdx = analysisStep === 'identify' ? 0 : analysisStep === 'law' ? 1 : analysisStep === 'ai' ? 2 : -1;
 
   return (
     <div className="py-4 space-y-3">

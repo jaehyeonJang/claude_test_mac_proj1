@@ -74,12 +74,21 @@ describe("InputForm", () => {
       statutes: [{ name: "소득세법", text: "조문" }],
       interpretation: "해석",
     };
+    const sseEvents = [
+      `data: ${JSON.stringify({ step: "identify" })}\n\n`,
+      `data: ${JSON.stringify({ step: "law", lawNames: ["소득세법"] })}\n\n`,
+      `data: ${JSON.stringify({ step: "ai" })}\n\n`,
+      `data: ${JSON.stringify({ result: mockResponse })}\n\n`,
+    ].join("");
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(sseEvents));
+        controller.close();
+      },
+    });
     const fetchSpy = vi
       .spyOn(global, "fetch")
-      .mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
+      .mockResolvedValue({ ok: true, body } as unknown as Response);
 
     const user = userEvent.setup();
     render(<InputForm />);

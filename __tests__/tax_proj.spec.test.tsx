@@ -21,11 +21,26 @@ const mockReport = {
     "근로소득자 절세 방안: 연금저축, 주택청약 공제를 활용하세요.",
 };
 
+function makeSSEResponse(result: unknown): Response {
+  const events = [
+    `data: ${JSON.stringify({ step: "identify" })}\n\n`,
+    `data: ${JSON.stringify({ step: "law", lawNames: ["소득세법"] })}\n\n`,
+    `data: ${JSON.stringify({ step: "ai" })}\n\n`,
+    `data: ${JSON.stringify({ result })}\n\n`,
+  ].join("");
+  const body = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(events));
+      controller.close();
+    },
+  });
+  return { ok: true, body } as unknown as Response;
+}
+
 function setupFetchMock(response = mockReport) {
-  return vi.spyOn(global, "fetch").mockResolvedValue({
-    ok: true,
-    json: async () => response,
-  } as Response);
+  return vi.spyOn(global, "fetch").mockImplementation(() =>
+    Promise.resolve(makeSSEResponse(response))
+  );
 }
 
 // In-memory localStorage polyfill for jsdom v28 (setItem/clear not always available)

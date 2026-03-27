@@ -888,7 +888,7 @@ export function InputForm() {
           {isLoading && analysisStep && (
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Spinner className="h-3 w-3" />
-              {analysisStep === "law" ? "관련 법령 조회 중..." : "AI 분석 중..."}
+              {analysisStep === "identify" ? "관련 법령 파악 중..." : analysisStep === "law" ? "법령 원문 조회 중..." : "AI 분석 중..."}
             </p>
           )}
         </div>

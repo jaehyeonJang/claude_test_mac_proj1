@@ -94,7 +94,7 @@ export interface TaxStoreState {
   history: HistoryItem[];
   darkMode: boolean;
   isLoading: boolean;
-  analysisStep: 'law' | 'ai' | null;
+  analysisStep: 'identify' | 'law' | 'ai' | null;
   submittedForm: FormData | null;
   error: string | null;
   setForm: (form: Partial<FormData>) => void;
@@ -155,6 +155,29 @@ function saveHistory(history: HistoryItem[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: "v1", history }));
   } catch {}
+}
+
+async function readSSEResult(res: Response): Promise<Record<string, unknown>> {
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const event = JSON.parse(line.slice(6));
+      if (event.result) return event.result;
+      if (event.error) throw new Error(event.error);
+    }
+  }
+  return {};
 }
 
 export const useTaxStore = create<TaxStoreState>((set, get) => ({
@@ -221,11 +244,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   submitAnalysis: async () => {
     const { form } = get();
     const formSnapshot = { ...form };
-    set({ isLoading: true, error: null, analysisStep: 'law', submittedForm: null });
-
-    const stepTimer = setTimeout(() => {
-      if (get().isLoading) set({ analysisStep: 'ai' });
-    }, 1500);
+    set({ isLoading: true, error: null, analysisStep: 'identify', submittedForm: null });
 
     try {
       const res = await fetch('/api/analyze', {
@@ -234,15 +253,43 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
-      const data = await res.json();
-      set({ report: data, submittedForm: formSnapshot });
-      get().addHistory({ timestamp: Date.now(), form: formSnapshot, report: data });
-      set({ form: defaultForm });
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.step) {
+              set({ analysisStep: event.step });
+            } else if (event.result) {
+              const report = event.result as ReportData;
+              set({ report, submittedForm: formSnapshot });
+              get().addHistory({ timestamp: Date.now(), form: formSnapshot, report });
+              set({ form: defaultForm });
+            } else if (event.error) {
+              throw new Error(event.error);
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof SyntaxError) continue;
+            throw parseErr;
+          }
+        }
+      }
     } catch (e) {
       console.error('[submitAnalysis]', e);
       set({ error: '분석 중 오류가 발생했습니다. 다시 시도해 주세요.' });
     } finally {
-      clearTimeout(stepTimer);
       set({ isLoading: false, analysisStep: null });
     }
   },
@@ -268,9 +315,8 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
         }),
       });
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
-      const data = await res.json();
-      // data.response: 실제 API 응답. 테스트 mock은 response 필드 없음 → fallback
-      addChatMessage({ role: 'assistant', content: data.response ?? '보고서가 업데이트되었습니다.' });
+      const data = await readSSEResult(res);
+      addChatMessage({ role: 'assistant', content: (data.response as string) ?? '보고서가 업데이트되었습니다.' });
     } catch (e) {
       console.error('[sendChatMessage]', e);
       throw new Error('메시지 전송 중 오류가 발생했습니다.');
@@ -293,8 +339,8 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
         body: JSON.stringify({ ...form, chatMessage: chatContext }),
       });
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
-      const data = await res.json();
-      set({ report: data });
+      const data = await readSSEResult(res);
+      set({ report: data as unknown as ReportData });
       addChatMessage({ role: 'assistant', content: '보고서에 반영되었습니다.' });
     } catch (e) {
       console.error('[applyToReport]', e);
