@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { searchStatutes, buildSearchQuery } from "@/lib/lawApi";
-import { chatWithGemini } from "@/lib/geminiApi";
+import { fetchLawsByNames } from "@/lib/lawApi";
+import { identifyRelevantLaws, chatWithGemini } from "@/lib/geminiApi";
 
 export async function POST(request: Request) {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -13,12 +13,11 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { currentReport, chatHistory, message, formData } = body;
 
-  // 1. 관련 세법 검사
-  const query = buildSearchQuery({ ...(formData ?? {}), freeText: message });
-  let statutes: Awaited<ReturnType<typeof searchStatutes>> = [];
-
+  // 1. 질문 기반 관련 법령 동적 식별 및 fetch
+  let statutes = [];
   try {
-    statutes = await searchStatutes(query);
+    const lawNames = await identifyRelevantLaws(formData ?? {}, message);
+    statutes = await fetchLawsByNames(lawNames);
   } catch {
     statutes = [];
   }
