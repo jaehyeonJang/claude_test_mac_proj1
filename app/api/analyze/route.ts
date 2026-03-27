@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const { chatMessage, ...formData } = body;
 
   // 1단계: 질문 분석 → 관련 법령명 추출
-  let statutes = [];
+  let statutes: Awaited<ReturnType<typeof fetchLawsByNames>> = [];
   let statutesAvailable = false;
   try {
     const lawNames = await identifyRelevantLaws(formData, chatMessage);

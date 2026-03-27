@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const { currentReport, chatHistory, message, formData } = body;
 
   // 1. 질문 기반 관련 법령 동적 식별 및 fetch
-  let statutes = [];
+  let statutes: Awaited<ReturnType<typeof fetchLawsByNames>> = [];
   try {
     const lawNames = await identifyRelevantLaws(formData ?? {}, message);
     statutes = await fetchLawsByNames(lawNames);
