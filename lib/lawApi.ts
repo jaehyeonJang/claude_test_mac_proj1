@@ -3,39 +3,69 @@ export interface Statute {
   text: string;
 }
 
-export async function searchStatutes(query: string): Promise<Statute[]> {
-  const apiKey = process.env.LAW_GO_KR_API_KEY;
-  if (!apiKey) return [];
-
+async function getLsiSeq(lawName: string): Promise<{ lsiSeq: string; efYd: string; chrClsCd: string } | null> {
   try {
-    const params = new URLSearchParams({
-      OC: apiKey,
-      target: "law",
-      type: "JSON",
-      query,
+    const res = await fetch(`https://www.law.go.kr/법령/${encodeURIComponent(lawName)}`, {
+      headers: { "User-Agent": "Mozilla/5.0" },
     });
+    if (!res.ok) return null;
 
-    const res = await fetch(
-      `https://www.law.go.kr/DRF/lawSearch.do?${params.toString()}`
-    );
+    const html = await res.text();
+    const match = html.match(/lsiSeq=(\d+)(?:&amp;|&)chrClsCd=(\w+)(?:&amp;|&)urlMode=lsInfoP(?:&amp;|&)efYd=(\d+)/);
+    if (!match) return null;
 
-    if (!res.ok) return [];
-
-    const data = await res.json();
-
-    const laws = data?.LawSearch?.law;
-    if (!Array.isArray(laws)) return [];
-
-    return laws
-      .slice(0, 3)
-      .map((law: Record<string, string>) => ({
-        name: law.법령명한글 ?? law["법령명한글"] ?? law.lawName ?? "",
-        text: law.법령내용 ?? law["법령내용"] ?? law.lawContent ?? "",
-      }))
-      .filter((s: Statute) => s.name);
+    return { lsiSeq: match[1], chrClsCd: match[2], efYd: match[3] };
   } catch {
-    return [];
+    return null;
   }
+}
+
+async function fetchLawContent(lsiSeq: string, chrClsCd: string, efYd: string): Promise<string> {
+  const body = new URLSearchParams({ lsiSeq, chrClsCd, efYd, ancYnChk: "0" });
+  const res = await fetch("https://www.law.go.kr/LSW/lsInfoR.do", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": "Mozilla/5.0",
+      "X-Requested-With": "XMLHttpRequest",
+    },
+    body: body.toString(),
+  });
+
+  if (!res.ok) return "";
+
+  const html = await res.text();
+  const text = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 5)
+    .join("\n")
+    .slice(0, 6000);
+
+  return text;
+}
+
+export async function fetchLawsByNames(lawNames: string[]): Promise<Statute[]> {
+  const results: Statute[] = [];
+
+  for (const name of lawNames.slice(0, 3)) {
+    try {
+      const info = await getLsiSeq(name);
+      if (!info) continue;
+
+      const text = await fetchLawContent(info.lsiSeq, info.chrClsCd, info.efYd);
+      if (text) results.push({ name, text });
+    } catch {
+      continue;
+    }
+  }
+
+  return results;
 }
 
 export function buildSearchQuery(formData: Record<string, unknown>): string {

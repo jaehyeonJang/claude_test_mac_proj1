@@ -131,6 +131,42 @@ export async function analyzeWithGemini(
   return result.text;
 }
 
+export async function identifyRelevantLaws(
+  formData: Record<string, unknown>,
+  chatMessage?: string
+): Promise<string[]> {
+  const incomeTypes: string[] = Array.isArray(formData.incomeTypes) && (formData.incomeTypes as string[]).length > 0
+    ? formData.incomeTypes as string[]
+    : [formData.incomeType, formData.incomeType2].filter((t): t is string => !!t && t !== "없음");
+
+  const context = [
+    incomeTypes.length > 0 && `소득 유형: ${incomeTypes.join(", ")}`,
+    formData.house && `주택: ${formData.house}`,
+    formData.financialIncome && formData.financialIncome !== "없음" && `금융소득: ${formData.financialIncome}`,
+    formData.pension && formData.pension !== "없음" && `연금소득: ${formData.pension}`,
+    formData.freeText && `추가 의뢰: ${sanitizeInput(String(formData.freeText))}`,
+    chatMessage && `사용자 질문: ${sanitizeInput(chatMessage)}`,
+  ].filter(Boolean).join("\n");
+
+  const prompt = `아래 세금 관련 정보를 분석하기 위해 참조해야 할 한국 법령명을 최대 3개 반환하세요.
+반드시 www.law.go.kr에서 조회 가능한 정확한 법령 정식 명칭이어야 합니다.
+JSON 배열 형식으로만 응답하세요. 예시: ["소득세법", "조세특례제한법"]
+
+입력 정보:
+${context}`;
+
+  try {
+    const result = await generateText({ model, prompt });
+    const match = result.text.match(/\[[\s\S]*\]/);
+    if (!match) return ["소득세법"];
+    const names = JSON.parse(match[0]);
+    if (!Array.isArray(names)) return ["소득세법"];
+    return names.filter((n): n is string => typeof n === "string").slice(0, 3);
+  } catch {
+    return ["소득세법"];
+  }
+}
+
 export async function chatWithGemini(
   currentReport: string,
   chatHistory: Array<{ role: string; content: string }>,
