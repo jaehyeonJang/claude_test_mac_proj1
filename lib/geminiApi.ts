@@ -169,6 +169,14 @@ ${context}`;
   }
 }
 
+export async function identifyRequiredFields(
+  request: string
+): Promise<{ fields: string[] } | { ambiguous: true; message: string }> {
+  // TODO: implement in Task 3
+  void request;
+  return { fields: [] };
+}
+
 export async function chatWithGemini(
   currentReport: string,
   chatHistory: Array<{ role: string; content: string }>,

@@ -83,11 +83,19 @@ export interface ChatMessage {
 export interface HistoryItem {
   id: string;
   timestamp: number;
+  request: string;
   form: FormData;
   report: ReportData;
 }
 
 export interface TaxStoreState {
+  // 2단계 플로우 상태
+  step: 1 | 2;
+  request: string;
+  dynamicFields: string[];
+  isIdentifying: boolean;
+  clarificationMessage: string | null;
+  // 기존 상태
   form: FormData;
   report: ReportData | null;
   chatHistory: ChatMessage[];
@@ -108,6 +116,8 @@ export interface TaxStoreState {
   setDarkMode: (darkMode: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
+  submitIdentifyFields: () => Promise<void>;
+  goBackToStep1: () => void;
   submitAnalysis: () => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
   applyToReport: () => Promise<void>;
@@ -181,6 +191,13 @@ async function readSSEResult(res: Response): Promise<Record<string, unknown>> {
 }
 
 export const useTaxStore = create<TaxStoreState>((set, get) => ({
+  // 2단계 플로우 초기 상태
+  step: 1,
+  request: "",
+  dynamicFields: [],
+  isIdentifying: false,
+  clarificationMessage: null,
+  // 기존 초기 상태
   form: defaultForm,
   report: null,
   chatHistory: [],
@@ -216,7 +233,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   restoreHistory: (item) => {
-    set({ form: item.form, report: item.report, chatHistory: [], submittedForm: item.form, error: null });
+    set({ form: item.form, report: item.report, chatHistory: [], submittedForm: item.form, error: null, step: 2, request: item.request ?? "" });
   },
 
   removeHistory: (id) => {
@@ -241,8 +258,36 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
 
   setError: (error) => set({ error }),
 
+  submitIdentifyFields: async () => {
+    const { request } = get();
+    set({ isIdentifying: true, clarificationMessage: null, error: null });
+    try {
+      const res = await fetch('/api/identify-fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request }),
+      });
+      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
+      const data = await res.json();
+      if (data.ambiguous) {
+        set({ clarificationMessage: data.message ?? '의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요' });
+      } else {
+        set({ dynamicFields: data.fields ?? [], step: 2, clarificationMessage: null });
+      }
+    } catch (e) {
+      console.error('[submitIdentifyFields]', e);
+      set({ error: '필드 결정 중 오류가 발생했습니다. 다시 시도해 주세요.' });
+    } finally {
+      set({ isIdentifying: false });
+    }
+  },
+
+  goBackToStep1: () => {
+    set({ step: 1, dynamicFields: [], clarificationMessage: null, error: null });
+  },
+
   submitAnalysis: async () => {
-    const { form } = get();
+    const { form, request } = get();
     const formSnapshot = { ...form };
     set({ isLoading: true, error: null, analysisStep: 'identify', submittedForm: null });
 
@@ -275,7 +320,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
             } else if (event.result) {
               const report = event.result as ReportData;
               set({ report, submittedForm: formSnapshot });
-              get().addHistory({ timestamp: Date.now(), form: formSnapshot, report });
+              get().addHistory({ timestamp: Date.now(), request, form: formSnapshot, report });
               set({ form: defaultForm });
             } else if (event.error) {
               throw new Error(event.error);
