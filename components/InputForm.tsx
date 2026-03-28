@@ -59,8 +59,19 @@ const FIELD_DEFS: Partial<Record<keyof FormData, FieldDef>> = {
   retirementYearsOfService:{ label: "근속연수(년)",         type: "text" },
   retirementIsExecutive:  { label: "임원 여부",             type: "select", options: ["비임원", "임원"] },
   retirementIrpRollover:  { label: "IRP 이연 수령",         type: "select", options: ["없음", "있음"] },
+  retirementHasInterimSettlement: { label: "중간정산 이력", type: "select", options: ["없음", "있음"] },
   otherIncomeCategory:    { label: "기타소득 종류",         type: "text" },
   otherIncomeTaxType:     { label: "과세 방식",             type: "select", options: ["분리과세", "종합과세"] },
+  // 증여세
+  giftAssetType:          { label: "증여 재산 종류",        type: "select", options: ["토지", "건물", "현금·예금", "주식·펀드", "기타"] },
+  giftAmount:             { label: "증여 재산가액",         type: "money" },
+  giftRelationship:       { label: "증여자와의 관계",       type: "select", options: ["직계존속(부모·조부모)", "직계비속(자녀·손자녀)", "배우자", "기타친족", "타인"] },
+  giftPriorAmount10Y:     { label: "10년 내 사전 증여 합산액", type: "money" },
+  giftDate:               { label: "증여 예정일",           type: "text" },
+  // 상속세
+  inheritanceAmount:      { label: "상속 재산 총액",        type: "money" },
+  inheritanceDebt:        { label: "채무·장례비 공제액",    type: "money" },
+  inheritanceSpouse:      { label: "배우자 상속",           type: "select", options: ["없음", "있음"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -181,6 +192,7 @@ function Stepper({ step }: { step: 1 | 2 }) {
 // InputForm — 메인 컴포넌트
 // ---------------------------------------------------------------------------
 export function InputForm() {
+  // ALL hooks must be called unconditionally at the top
   const step              = useTaxStore((s) => s.step);
   const request           = useTaxStore((s) => s.request);
   const setRequest        = useTaxStore((s) => s.setRequest);
@@ -192,6 +204,8 @@ export function InputForm() {
   const submitIdentifyFields = useTaxStore((s) => s.submitIdentifyFields);
   const goBackToStep1     = useTaxStore((s) => s.goBackToStep1);
   const submitAnalysis    = useTaxStore((s) => s.submitAnalysis);
+  const report            = useTaxStore((s) => s.report);
+  const form              = useTaxStore((s) => s.form);
 
   const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,7 +266,35 @@ export function InputForm() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 2: AI 결정 필드 입력
+  // Step 2 (분석 완료): 읽기 전용 요약
+  // ---------------------------------------------------------------------------
+  if (report !== null && !isLoading) {
+    return (
+      <div>
+        <Stepper step={2} />
+
+        {/* 제출된 필드 읽기 전용 */}
+        {dynamicFields.length > 0 && (
+          <div className="rounded-lg border bg-muted/20 divide-y text-sm mb-2">
+            {dynamicFields.map((key) => {
+              const def = FIELD_DEFS[key as keyof FormData];
+              const value = (form[key as keyof FormData] as string) ?? "";
+              if (!def || !value) return null;
+              return (
+                <div key={key} className="flex items-center gap-2 px-3 py-2">
+                  <span className="text-[11px] text-muted-foreground w-28 shrink-0">{def.label}</span>
+                  <span className="text-sm font-medium">{value}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 2 (입력 중 / 로딩 중): 필드 입력 폼
   // ---------------------------------------------------------------------------
   return (
     <form onSubmit={handleAnalyze}>

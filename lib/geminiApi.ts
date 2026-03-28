@@ -104,11 +104,29 @@ export async function analyzeWithGemini(
     formData.otherIncomeTaxType  && `- 과세 방식: ${formData.otherIncomeTaxType}`,
   ].filter(Boolean).join("\n");
 
+  // 증여세 전용 필드
+  const giftFields = [
+    formData.giftAssetType      && `- 증여 재산 종류: ${formData.giftAssetType}`,
+    formData.giftAmount         && `- 증여 재산가액: ${formData.giftAmount}`,
+    formData.giftRelationship   && `- 증여자와의 관계: ${formData.giftRelationship}`,
+    formData.giftPriorAmount10Y && `- 10년 내 사전 증여 합산액: ${formData.giftPriorAmount10Y}`,
+    formData.giftDate           && `- 증여 예정일: ${formData.giftDate}`,
+  ].filter(Boolean).join("\n");
+
+  // 상속세 전용 필드
+  const inheritanceFields = [
+    formData.inheritanceAmount  && `- 상속 재산 총액: ${formData.inheritanceAmount}`,
+    formData.inheritanceDebt    && `- 채무·장례비 공제액: ${formData.inheritanceDebt}`,
+    formData.inheritanceSpouse  && `- 배우자 상속: ${formData.inheritanceSpouse}`,
+  ].filter(Boolean).join("\n");
+
   const specializedSections = [
-    capitalGainFields && `\n양도소득 상세:\n${capitalGainFields}`,
-    retirementFields  && `\n퇴직소득 상세:\n${retirementFields}`,
-    businessFields    && `\n사업소득 상세:\n${businessFields}`,
-    otherIncomeFields && `\n기타소득 상세:\n${otherIncomeFields}`,
+    capitalGainFields  && `\n양도소득 상세:\n${capitalGainFields}`,
+    retirementFields   && `\n퇴직소득 상세:\n${retirementFields}`,
+    businessFields     && `\n사업소득 상세:\n${businessFields}`,
+    otherIncomeFields  && `\n기타소득 상세:\n${otherIncomeFields}`,
+    giftFields         && `\n증여세 상세:\n${giftFields}`,
+    inheritanceFields  && `\n상속세 상세:\n${inheritanceFields}`,
   ].filter(Boolean).join("");
 
   const prompt = `당신은 한국 세법 전문가입니다. 아래 정보를 바탕으로 절세 방안을 분석해주세요.
@@ -146,6 +164,9 @@ export async function identifyRelevantLaws(
     formData.house && `주택: ${formData.house}`,
     formData.financialIncome && formData.financialIncome !== "없음" && `금융소득: ${formData.financialIncome}`,
     formData.pension && formData.pension !== "없음" && `연금소득: ${formData.pension}`,
+    formData.giftAmount && `증여 재산가액: ${formData.giftAmount}`,
+    formData.giftRelationship && `증여 관계: ${formData.giftRelationship}`,
+    formData.inheritanceAmount && `상속 재산: ${formData.inheritanceAmount}`,
     formData.freeText && `추가 의뢰: ${sanitizeInput(String(formData.freeText))}`,
     chatMessage && `사용자 질문: ${sanitizeInput(chatMessage)}`,
   ].filter(Boolean).join("\n");
@@ -183,6 +204,8 @@ const VALID_FIELD_KEYS = [
   "businessIndustry", "businessExpenseRateType", "businessRevenue",
   "businessPurchaseExpense", "businessRentExpense", "businessLaborExpense",
   "otherIncomeCategory", "otherIncomeTaxType",
+  "giftAssetType", "giftAmount", "giftRelationship", "giftPriorAmount10Y", "giftDate",
+  "inheritanceAmount", "inheritanceDebt", "inheritanceSpouse",
 ] as const;
 
 export async function identifyRequiredFields(
@@ -193,17 +216,58 @@ export async function identifyRequiredFields(
 의뢰 내용:
 "${sanitizeInput(request)}"
 
-다음 중 하나로만 응답하세요:
+━━━ 소득 유형별 권장 필드 세트 ━━━
 
-1. 의뢰가 구체적이고 분석 가능한 경우:
-   필요한 필드 키 목록을 JSON 배열로만 응답. 예: ["annualIncome", "prepaidTax"]
-   선택 가능한 키: ${VALID_FIELD_KEYS.join(", ")}
-   - 의뢰와 관련된 핵심 필드만 최대 8개 포함
-   - 소득 유형이 명확하면 해당 소득 관련 필드 우선
+[근로소득]
+필수: incomeType, annualIncome, prepaidTax
+공제 관련: pensionSavingsAmount, irpAmount, creditCard, medicalExpense, educationExpense, insurancePremium, donation, housingSubscription, monthlyRent, smbEmployeeReduction
+부양가족: childDependents, spouseDependents, elderDependents60, elderDependents70
 
-2. 의뢰가 모호하여 분석 불가능한 경우 (어떤 소득인지, 어떤 세금 문제인지 파악 불가):
-   정확히 이 JSON으로만 응답:
-   {"ambiguous": true, "message": "의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요"}
+[사업소득 / 프리랜서 / 자영업]
+필수: incomeType, annualIncome, prepaidTax, businessIndustry, businessExpenseRateType, businessRevenue
+경비 상세(기준경비율·복식부기 해당): businessPurchaseExpense, businessRentExpense, businessLaborExpense
+공제: pensionSavingsAmount, irpAmount, childDependents, spouseDependents
+
+[양도소득 (부동산·주식 매각)]
+필수: incomeType, capitalGainAssetType, capitalGainAcquisitionDate, capitalGainTransferDate, capitalGainAcquisitionPrice, capitalGainTransferPrice, capitalGainExpenses, capitalGainAdjustedZone
+추가: prepaidTax, house
+
+[퇴직소득]
+필수: incomeType, retirementAmount, retirementYearsOfService, retirementIsExecutive, retirementHasInterimSettlement
+추가: retirementIrpRollover, prepaidTax
+
+[기타소득 (강연·원고료·복권 등)]
+필수: incomeType, annualIncome, otherIncomeCategory, otherIncomeTaxType
+추가: prepaidTax
+
+[증여세 (재산을 받는 경우: 부모·친족에게 토지·건물·현금·주식 등 받음)]
+필수: giftAssetType, giftAmount, giftRelationship, giftPriorAmount10Y
+추가: giftDate
+
+[상속세 (사망으로 인한 재산 취득)]
+필수: inheritanceAmount, inheritanceSpouse
+추가: inheritanceDebt
+
+[복합 소득]
+- 복수 소득이 언급되면 각 소득 유형의 필수 필드를 합산
+- 근로소득자가 증여를 받는 경우: 증여세 필드 + 근로소득 일부 필드 병행
+
+━━━ 선택 규칙 ━━━
+- 의뢰에서 소득 유형이 명확하지 않으면 반드시 incomeType 포함
+- 양도·퇴직소득 외에는 annualIncome, prepaidTax 항상 포함
+- 의뢰에 구체적 공제 항목(연금저축, 월세, 의료비 등)이 언급되면 해당 필드 포함
+- 최대 15개까지 포함 가능
+- 불필요한 필드는 제외하여 사용자 부담 최소화
+
+━━━ 응답 형식 ━━━
+
+의뢰가 조금이라도 분석 가능한 경우 (소득 유형이 완전히 불명확해도 incomeType 등 기본 필드로 시작 가능):
+필드 키 목록을 JSON 배열로만 응답. 예: ["incomeType", "annualIncome", "prepaidTax"]
+사용 가능한 키: ${VALID_FIELD_KEYS.join(", ")}
+
+정말 세금·소득과 무관한 내용이거나 어떤 필드도 선택할 수 없는 경우에만 아래 JSON으로 응답:
+{"ambiguous": true, "message": "<구체적인 이유: 어떤 정보가 없어서 분석이 불가능한지 한 문장으로>"}
+예시: {"ambiguous": true, "message": "소득 유형(근로/사업/양도 등)을 알 수 없어 필요한 정보를 결정하기 어렵습니다. 어떤 종류의 소득에 대한 절세를 원하시나요?"}
 
 JSON 외 다른 텍스트는 절대 포함하지 마세요.`;
 
@@ -229,15 +293,15 @@ JSON 외 다른 텍스트는 절대 포함하지 마세요.`;
       if (Array.isArray(parsed)) {
         const fields = parsed
           .filter((k): k is string => typeof k === "string" && (VALID_FIELD_KEYS as readonly string[]).includes(k))
-          .slice(0, 8);
+          .slice(0, 15);
         if (fields.length > 0) return { fields };
       }
     }
 
-    // 파싱 실패 → ambiguous 처리
-    return { ambiguous: true, message: "의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요" };
+    // 파싱 실패 → 기본 필드셋으로 진행
+    return { fields: ["incomeType", "annualIncome", "prepaidTax"] };
   } catch {
-    return { ambiguous: true, message: "의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요" };
+    return { fields: ["incomeType", "annualIncome", "prepaidTax"] };
   }
 }
 

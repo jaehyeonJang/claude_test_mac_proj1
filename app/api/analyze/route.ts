@@ -41,6 +41,7 @@ export async function POST(request: Request) {
 
         send({ result: { statutes, interpretation, statutesAvailable: statutes.length > 0 } });
       } catch (e) {
+        console.error('[analyze] error:', e);
         send({ error: "분석 중 오류가 발생했습니다.", detail: String(e) });
       } finally {
         controller.close();

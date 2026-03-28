@@ -195,6 +195,155 @@ function FormSummary({ form }: { form: FormData }) {
 }
 
 // ---------------------------------------------------------------------------
+// StatuteCard — 법령 조문 구조화 렌더링
+// ---------------------------------------------------------------------------
+
+/** 조문 구조: 조(條) > 항(①②③) > 호(1.2.3.) > 목(가.나.다.) */
+interface ArticleItem {
+  title: string;   // 예: "제18조(기초공제)"
+  paragraphs: ParagraphItem[];
+}
+
+interface ParagraphItem {
+  marker: string;  // 예: "①", "" (본문)
+  text: string;
+  items: SubItem[];
+}
+
+interface SubItem {
+  marker: string;  // 예: "1.", "가."
+  text: string;
+  subitems: string[];
+}
+
+// ①②③④⑤⑥⑦⑧⑨⑩ 등 원문자 패턴
+const PARA_MARKER = /^([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳])\s*/;
+// 1. 2. 3. 호 패턴
+const HO_MARKER = /^(\d{1,2}\.)\s+/;
+// 가. 나. 다. 목 패턴
+const MOK_MARKER = /^([가-힣]\.)\s+/;
+
+function parseArticles(rawText: string): ArticleItem[] {
+  // 조 단위로 분리: "제N조" 또는 "제N조의M" + 선택적 괄호 제목
+  const ARTICLE_RE = /(제\d+조(?:의\d+)?(?:\([^)]*\))?)/g;
+  const parts = rawText.split(ARTICLE_RE);
+
+  const articles: ArticleItem[] = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const title = parts[i].trim();
+    const body = (parts[i + 1] ?? "").trim();
+    articles.push({ title, paragraphs: parseParagraphs(body) });
+  }
+  return articles;
+}
+
+function parseParagraphs(body: string): ParagraphItem[] {
+  // 원문자 기준으로 분리
+  const segments = body.split(/(?=①|②|③|④|⑤|⑥|⑦|⑧|⑨|⑩|⑪|⑫|⑬|⑭|⑮|⑯|⑰|⑱|⑲|⑳)/);
+  return segments
+    .map((seg) => seg.trim())
+    .filter(Boolean)
+    .map((seg) => {
+      const paraMatch = seg.match(PARA_MARKER);
+      const marker = paraMatch ? paraMatch[1] : "";
+      const rest = paraMatch ? seg.slice(paraMatch[0].length) : seg;
+      const { mainText, items } = parseItems(rest);
+      return { marker, text: mainText, items };
+    });
+}
+
+function parseItems(text: string): { mainText: string; items: SubItem[] } {
+  // 줄 단위로 분리한 뒤 호/목 패턴을 파싱
+  const lines = text.split(/\n/).map((l) => l.trim()).filter(Boolean);
+  const mainLines: string[] = [];
+  const items: SubItem[] = [];
+  let currentItem: SubItem | null = null;
+
+  for (const line of lines) {
+    const ho = line.match(HO_MARKER);
+    const mok = line.match(MOK_MARKER);
+
+    if (ho) {
+      if (currentItem) items.push(currentItem);
+      currentItem = { marker: ho[1], text: line.slice(ho[0].length), subitems: [] };
+    } else if (mok && currentItem) {
+      currentItem.subitems.push(line.slice(mok[0].length));
+    } else if (currentItem) {
+      // 호 내용 이어받기
+      currentItem.text += " " + line;
+    } else {
+      mainLines.push(line);
+    }
+  }
+  if (currentItem) items.push(currentItem);
+
+  return { mainText: mainLines.join(" "), items };
+}
+
+function StatuteCard({ statute }: { statute: { name: string; text: string } }) {
+  const articles = parseArticles(statute.text);
+
+  if (articles.length === 0) {
+    // 조문 패턴이 없는 경우: 법령명+본문을 하나의 요소로 표시
+    return (
+      <div className="border rounded-lg overflow-hidden px-4 py-4">
+        <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+          {statute.name}: {statute.text}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      {/* 법령명 헤더 */}
+      <div className="bg-muted px-4 py-2.5 font-semibold text-sm border-b">{statute.name}</div>
+
+      <div className="divide-y">
+        {articles.map((article, ai) => (
+          <div key={ai} className="px-4 py-3 space-y-2">
+            {/* 조 제목 */}
+            <p className="text-xs font-semibold text-primary">{article.title}</p>
+
+            {article.paragraphs.map((para, pi) => (
+              <div key={pi} className={para.marker ? "flex gap-1.5" : ""}>
+                {para.marker && (
+                  <span className="text-xs font-medium text-foreground/70 shrink-0 w-5 pt-px">{para.marker}</span>
+                )}
+                <div className="flex-1 space-y-1">
+                  {para.text && (
+                    <p className="text-xs text-muted-foreground leading-relaxed">{para.text}</p>
+                  )}
+                  {para.items.length > 0 && (
+                    <ol className="space-y-1 mt-1">
+                      {para.items.map((item, ii) => (
+                        <li key={ii} className="flex gap-1.5">
+                          <span className="text-xs font-medium text-foreground/60 shrink-0 min-w-[1.5rem]">{item.marker}</span>
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+                            {item.subitems.length > 0 && (
+                              <ul className="mt-0.5 space-y-0.5 pl-2">
+                                {item.subitems.map((sub, si) => (
+                                  <li key={si} className="text-xs text-muted-foreground/80 leading-relaxed before:content-['-'] before:mr-1.5">{sub}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Step status (after analysis)
 // ---------------------------------------------------------------------------
 
@@ -340,36 +489,9 @@ export function ReportView() {
             <p className="text-sm text-muted-foreground">법령 데이터를 조회하지 못했습니다. AI 분석 결과만 제공됩니다.</p>
           ) : (
             <div className="flex flex-col gap-6">
-              {report.statutes.map((s, i) => {
-                // Split law text into individual articles (제X조)
-                const articlePattern = /(제\d+조(?:의\d+)?(?:\([^)]*\))?)/g;
-                const parts = s.text.split(articlePattern);
-                const articles: { title: string; content: string }[] = [];
-                for (let j = 1; j < parts.length; j += 2) {
-                  articles.push({ title: parts[j], content: (parts[j + 1] ?? "").trim() });
-                }
-                return (
-                  <div key={i} className="border rounded-lg overflow-hidden">
-                    {articles.length > 0 ? (
-                      <>
-                        <div className="bg-muted px-4 py-2 font-semibold text-sm border-b">{s.name}</div>
-                        <div className="divide-y">
-                          {articles.map((a, j) => (
-                            <div key={j} className="px-4 py-3">
-                              <p className="text-xs font-medium text-primary mb-1">{a.title}</p>
-                              <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{a.content}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="px-4 py-4">
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{s.name}: {s.text}</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {report.statutes.map((s, i) => (
+                <StatuteCard key={i} statute={s} />
+              ))}
             </div>
           )}
         </TabsContent>

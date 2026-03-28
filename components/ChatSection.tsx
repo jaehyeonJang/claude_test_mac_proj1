@@ -36,7 +36,7 @@ export function ChatSection() {
   }
 
   return (
-    <section aria-label="채팅" className="flex flex-col h-full overflow-hidden">
+    <section aria-label="채팅" className="flex flex-col rounded-lg border overflow-hidden">
       {/* Header */}
       <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center gap-2 shrink-0">
         <MessageCircle className="h-4 w-4 text-muted-foreground" />
@@ -47,7 +47,7 @@ export function ChatSection() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 min-h-40">
+      <div className="overflow-y-auto p-3 max-h-96 min-h-40">
         <div role="log" aria-live="polite" className="flex flex-col gap-2 h-full">
           {chatHistory.length === 0 ? (
             <div className="flex items-center justify-center h-full">

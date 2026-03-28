@@ -59,6 +59,16 @@ export interface FormData {
   // 기타소득 전용 필드
   otherIncomeCategory?: string;        // 소득 종류
   otherIncomeTaxType?: string;         // 과세 방식
+  // 증여세 전용 필드
+  giftAssetType?: string;              // 증여 재산 종류 (토지, 건물, 현금, 주식 등)
+  giftAmount?: string;                 // 증여 재산가액
+  giftRelationship?: string;           // 증여자와의 관계
+  giftPriorAmount10Y?: string;         // 10년 내 사전 증여 합산액
+  giftDate?: string;                   // 증여 예정일
+  // 상속세 전용 필드
+  inheritanceAmount?: string;          // 상속 재산 총액
+  inheritanceDebt?: string;            // 채무·장례비 공제
+  inheritanceSpouse?: string;          // 배우자 상속 여부
   // 하위호환 (spec 테스트 setState 호환)
   dependents?: string;
   pensionSavings?: string;
@@ -291,14 +301,16 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
 
   submitAnalysis: async () => {
     const { form, request } = get();
-    const formSnapshot = { ...form };
+    // request를 freeText로 병합: 사용자 의뢰 내용을 분석 API에 전달
+    const formWithRequest = { ...form, freeText: form.freeText || request };
+    const formSnapshot = { ...formWithRequest };
     set({ isLoading: true, error: null, analysisStep: 'identify', submittedForm: null });
 
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(formWithRequest),
       });
       if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
 
@@ -326,7 +338,9 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
               get().addHistory({ timestamp: Date.now(), request, form: formSnapshot, report });
               set({ form: defaultForm });
             } else if (event.error) {
-              throw new Error(event.error);
+              const detail = event.detail ? ` (${event.detail})` : '';
+              console.error('[analyze] server error:', event.error, event.detail);
+              throw new Error(event.error + detail);
             }
           } catch (parseErr) {
             if (parseErr instanceof SyntaxError) continue;
@@ -343,7 +357,7 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   },
 
   resetAnalysis: () => {
-    set({ report: null, chatHistory: [], error: null, form: defaultForm, analysisStep: null, submittedForm: null });
+    set({ report: null, chatHistory: [], error: null, form: defaultForm, analysisStep: null, submittedForm: null, step: 1, request: "", dynamicFields: [], clarificationMessage: null, isIdentifying: false });
   },
 
   sendChatMessage: async (message: string) => {
