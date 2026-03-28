@@ -181,15 +181,8 @@ export function HistorySidebar({ onNewAnalysis, onRestoreHistory }: HistorySideb
                     </button>
                     <div className="flex-1 min-w-0">
                       <span className="block text-xs font-medium truncate">
-                        {(item.form.incomeTypes && item.form.incomeTypes.length > 0)
-                          ? item.form.incomeTypes.join(", ")
-                          : item.form.incomeType || "자유 텍스트"}
+                        {(item.request ?? "").slice(0, 20) || "분석 요청"}
                       </span>
-                      {getReportSummary(item.report.interpretation) && (
-                        <span className="block text-xs text-muted-foreground/70 truncate" aria-hidden="true">
-                          {renderSummaryNode(getReportSummary(item.report.interpretation))}
-                        </span>
-                      )}
                       <span className="block text-xs text-muted-foreground">
                         {formatTimestamp(item.timestamp)}
                       </span>

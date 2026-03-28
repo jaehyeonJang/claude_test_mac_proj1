@@ -105,6 +105,7 @@ export interface TaxStoreState {
   analysisStep: 'identify' | 'law' | 'ai' | null;
   submittedForm: FormData | null;
   error: string | null;
+  setRequest: (request: string) => void;
   setForm: (form: Partial<FormData>) => void;
   setReport: (report: ReportData | null) => void;
   addChatMessage: (message: Omit<ChatMessage, "id">) => void;
@@ -207,6 +208,8 @@ export const useTaxStore = create<TaxStoreState>((set, get) => ({
   analysisStep: null,
   submittedForm: null,
   error: null,
+
+  setRequest: (request) => set({ request }),
 
   setForm: (partial) =>
     set((state) => ({ form: { ...state.form, ...partial } })),
