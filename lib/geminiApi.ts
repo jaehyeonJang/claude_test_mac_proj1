@@ -169,12 +169,76 @@ ${context}`;
   }
 }
 
+// Valid FormData field keys the AI can return
+const VALID_FIELD_KEYS = [
+  "incomeType", "annualIncome", "prepaidTax", "house", "financialIncome",
+  "pension", "retirementIncome", "childDependents", "spouseDependents",
+  "elderDependents60", "elderDependents70", "pensionSavingsAmount", "irpAmount",
+  "creditCard", "medicalExpense", "educationExpense", "insurancePremium",
+  "donation", "housingSubscription", "monthlyRent", "smbEmployeeReduction",
+  "capitalGainAssetType", "capitalGainAcquisitionDate", "capitalGainTransferDate",
+  "capitalGainAcquisitionPrice", "capitalGainTransferPrice", "capitalGainExpenses",
+  "capitalGainAdjustedZone", "retirementAmount", "retirementYearsOfService",
+  "retirementIsExecutive", "retirementIrpRollover", "retirementHasInterimSettlement",
+  "businessIndustry", "businessExpenseRateType", "businessRevenue",
+  "businessPurchaseExpense", "businessRentExpense", "businessLaborExpense",
+  "otherIncomeCategory", "otherIncomeTaxType",
+] as const;
+
 export async function identifyRequiredFields(
   request: string
 ): Promise<{ fields: string[] } | { ambiguous: true; message: string }> {
-  // TODO: implement in Task 3
-  void request;
-  return { fields: [] };
+  const prompt = `당신은 한국 세금 전문가입니다. 사용자의 세금 관련 의뢰를 분석하여 절세 방안 분석에 필요한 정보 필드를 결정하세요.
+
+의뢰 내용:
+"${sanitizeInput(request)}"
+
+다음 중 하나로만 응답하세요:
+
+1. 의뢰가 구체적이고 분석 가능한 경우:
+   필요한 필드 키 목록을 JSON 배열로만 응답. 예: ["annualIncome", "prepaidTax"]
+   선택 가능한 키: ${VALID_FIELD_KEYS.join(", ")}
+   - 의뢰와 관련된 핵심 필드만 최대 8개 포함
+   - 소득 유형이 명확하면 해당 소득 관련 필드 우선
+
+2. 의뢰가 모호하여 분석 불가능한 경우 (어떤 소득인지, 어떤 세금 문제인지 파악 불가):
+   정확히 이 JSON으로만 응답:
+   {"ambiguous": true, "message": "의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요"}
+
+JSON 외 다른 텍스트는 절대 포함하지 마세요.`;
+
+  try {
+    const result = await generateText({ model, prompt });
+    const text = result.text.trim();
+
+    // ambiguous 응답 체크
+    if (text.includes('"ambiguous"') && text.includes('true')) {
+      const match = text.match(/\{[\s\S]*"ambiguous"[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        if (parsed.ambiguous === true) {
+          return { ambiguous: true, message: parsed.message ?? "의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요" };
+        }
+      }
+    }
+
+    // 필드 배열 응답 체크
+    const arrayMatch = text.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      const parsed = JSON.parse(arrayMatch[0]);
+      if (Array.isArray(parsed)) {
+        const fields = parsed
+          .filter((k): k is string => typeof k === "string" && (VALID_FIELD_KEYS as readonly string[]).includes(k))
+          .slice(0, 8);
+        if (fields.length > 0) return { fields };
+      }
+    }
+
+    // 파싱 실패 → ambiguous 처리
+    return { ambiguous: true, message: "의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요" };
+  } catch {
+    return { ambiguous: true, message: "의뢰 내용이 모호합니다. 구체적인 상황을 입력해주세요" };
+  }
 }
 
 export async function chatWithGemini(
